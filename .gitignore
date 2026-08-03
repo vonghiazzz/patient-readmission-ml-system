@@ -1,0 +1,32 @@
+# Python virtual environment
+.venv/
+
+# Environment variables and secrets
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Test and lint cache
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# macOS
+.DS_Store
+
+# Raw data
+data/raw/*
+!data/raw/.gitkeep
+
+# MLflow local artifacts
+mlruns/
+
+# Model binaries
+models/*.joblib
+models/*.pkl
+
+# Logs
+*.log
