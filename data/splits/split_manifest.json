@@ -1,0 +1,30 @@
+{
+  "strategy": "patient_aware_group_shuffle_split",
+  "random_state": 42,
+  "ratios": {
+    "train": 0.7,
+    "validation": 0.15,
+    "test": 0.15
+  },
+  "target": "readmitted_30d",
+  "splits": {
+    "train": {
+      "row_count": 71520,
+      "patient_count": 50062,
+      "positive_rate": 0.11215044742729306,
+      "patient_id_hash": "49a99b20a356c7e987c1d389887864cfac2f895e676c0bb57125ceddfb7f9d83"
+    },
+    "validation": {
+      "row_count": 15027,
+      "patient_count": 10728,
+      "positive_rate": 0.11020163705330405,
+      "patient_id_hash": "0539efb3e8d257f8f840ce38ae436c45eba0b06a5e025419467aaaf2e00440c1"
+    },
+    "test": {
+      "row_count": 15219,
+      "patient_count": 10728,
+      "positive_rate": 0.11038833037650306,
+      "patient_id_hash": "ebb5ce891a875aebca3b027ea4c4454e163fdb192d88784a6b7383e8f9bff138"
+    }
+  }
+}

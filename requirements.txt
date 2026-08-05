@@ -6,3 +6,7 @@ httpx==0.28.1
 pytest==9.1.1
 pytest-cov==7.1.0
 ruff==0.15.22
+joblib==1.5.3
+pandas==3.0.5
+PyYAML==6.0.3
+scikit-learn==1.9.0
