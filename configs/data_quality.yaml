@@ -1,0 +1,35 @@
+required_columns:
+  - encounter_id
+  - patient_nbr
+  - race
+  - gender
+  - age
+  - time_in_hospital
+  - num_lab_procedures
+  - num_procedures
+  - num_medications
+  - number_outpatient
+  - number_emergency
+  - number_inpatient
+  - number_diagnoses
+  - readmitted
+
+allowed_readmitted:
+  - "<30"
+  - ">30"
+  - "NO"
+
+non_negative_columns:
+  - time_in_hospital
+  - num_lab_procedures
+  - num_procedures
+  - num_medications
+  - number_outpatient
+  - number_emergency
+  - number_inpatient
+  - number_diagnoses
+
+duplicate_subset:
+  - encounter_id
+
+missing_thresholds: {}
