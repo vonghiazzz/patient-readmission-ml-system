@@ -7,6 +7,7 @@
 # Python cache
 __pycache__/
 *.py[cod]
+.pytest_cache/
 
 # Test and lint cache
 .pytest_cache/
@@ -19,14 +20,23 @@ htmlcov/
 
 # Raw data
 data/raw/*
+data/interim/*
+data/processed/*
+
+# Keep directory placeholders
 !data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
 
 # MLflow local artifacts
 mlruns/
 
-# Model binaries
+# Generated artifacts
 models/*.joblib
 models/*.pkl
+mlruns/
+models/*.pickle
+models/*.bin
 
 # Logs
 *.log
