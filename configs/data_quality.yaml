@@ -31,5 +31,6 @@ non_negative_columns:
 
 duplicate_subset:
   - encounter_id
-
+max_duplicate_rows: 0
+value_ranges: {}
 missing_thresholds: {}

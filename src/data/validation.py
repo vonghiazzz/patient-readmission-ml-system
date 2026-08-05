@@ -37,6 +37,7 @@ def validate_dataframe(
         errors.append(f"Missing required columns: {missing_columns}")
 
     allowed_labels = set(config.get("allowed_readmitted", []))
+
     if "readmitted" in dataframe.columns and allowed_labels:
         actual_labels = set(dataframe["readmitted"].dropna().astype(str).unique())
         invalid_labels = sorted(actual_labels - allowed_labels)
@@ -48,11 +49,59 @@ def validate_dataframe(
         if column not in dataframe.columns:
             continue
 
-        numeric_values = pd.to_numeric(dataframe[column], errors="coerce")
+        numeric_values = pd.to_numeric(
+            dataframe[column],
+            errors="coerce",
+        )
+
+        non_numeric_count = int((dataframe[column].notna() & numeric_values.isna()).sum())
+
+        if non_numeric_count:
+            errors.append(f"Column '{column}' contains {non_numeric_count} non-numeric values.")
+
         negative_count = int((numeric_values < 0).sum())
 
         if negative_count:
             errors.append(f"Column '{column}' contains {negative_count} negative values.")
+
+    for column, bounds in config.get("value_ranges", {}).items():
+        if column not in dataframe.columns:
+            continue
+
+        if not isinstance(bounds, dict):
+            errors.append(f"Range configuration for column '{column}' must be a mapping.")
+            continue
+
+        numeric_values = pd.to_numeric(
+            dataframe[column],
+            errors="coerce",
+        )
+
+        non_numeric_count = int((dataframe[column].notna() & numeric_values.isna()).sum())
+
+        if non_numeric_count:
+            errors.append(f"Column '{column}' contains {non_numeric_count} non-numeric values.")
+
+        minimum = bounds.get("min")
+        maximum = bounds.get("max")
+
+        if minimum is not None:
+            below_minimum_count = int((numeric_values < float(minimum)).sum())
+
+            if below_minimum_count:
+                errors.append(
+                    f"Column '{column}' contains "
+                    f"{below_minimum_count} values below minimum {minimum}."
+                )
+
+        if maximum is not None:
+            above_maximum_count = int((numeric_values > float(maximum)).sum())
+
+            if above_maximum_count:
+                errors.append(
+                    f"Column '{column}' contains "
+                    f"{above_maximum_count} values above maximum {maximum}."
+                )
 
     missing_rate = {
         column: float(rate)
@@ -64,23 +113,54 @@ def validate_dataframe(
             continue
 
         actual_rate = missing_rate[column]
-        if actual_rate > float(threshold):
+        configured_threshold = float(threshold)
+
+        if actual_rate > configured_threshold:
             errors.append(
                 f"Column '{column}' missing rate {actual_rate:.4f} "
-                f"exceeds threshold {float(threshold):.4f}."
+                f"exceeds threshold {configured_threshold:.4f}."
             )
 
     duplicate_subset = config.get("duplicate_subset", [])
-    usable_subset = [column for column in duplicate_subset if column in dataframe.columns]
+    max_duplicate_rows = int(config.get("max_duplicate_rows", 0))
+    duplicate_count = 0
 
-    duplicate_count = int(dataframe.duplicated(subset=usable_subset or None).sum())
+    if duplicate_subset:
+        missing_duplicate_columns = [
+            column for column in duplicate_subset if column not in dataframe.columns
+        ]
 
-    if duplicate_count:
-        warnings.append(f"Detected {duplicate_count} duplicate rows/keys.")
+        if missing_duplicate_columns:
+            errors.append(
+                f"Duplicate check columns are missing: {sorted(missing_duplicate_columns)}"
+            )
+        else:
+            duplicate_count = int(
+                dataframe.duplicated(
+                    subset=duplicate_subset,
+                    keep="first",
+                ).sum()
+            )
 
-    label_positive_rate = None
+            if duplicate_count > max_duplicate_rows:
+                errors.append(
+                    f"Detected {duplicate_count} duplicate rows/keys; "
+                    f"maximum allowed is {max_duplicate_rows}."
+                )
+            elif duplicate_count:
+                warnings.append(f"Detected {duplicate_count} duplicate rows/keys.")
+
+    label_positive_rate: float | None = None
+
     if "readmitted" in dataframe.columns:
-        binary_target = dataframe["readmitted"].map({"<30": 1, ">30": 0, "NO": 0})
+        binary_target = dataframe["readmitted"].map(
+            {
+                "<30": 1,
+                ">30": 0,
+                "NO": 0,
+            }
+        )
+
         if binary_target.notna().any():
             label_positive_rate = float(binary_target.mean())
 
@@ -97,12 +177,24 @@ def validate_dataframe(
     }
 
 
-def write_report(report: dict[str, Any], report_path: Path) -> None:
+def write_report(
+    report: dict[str, Any],
+    report_path: Path,
+) -> None:
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(
-        json.dumps(report, indent=2, ensure_ascii=False),
+
+    temporary_path = report_path.with_suffix(f"{report_path.suffix}.tmp")
+
+    temporary_path.write_text(
+        json.dumps(
+            report,
+            indent=2,
+            ensure_ascii=False,
+        ),
         encoding="utf-8",
     )
+
+    temporary_path.replace(report_path)
 
 
 def run_validation(
@@ -113,14 +205,18 @@ def run_validation(
     if not input_path.exists():
         raise FileNotFoundError(f"Input dataset does not exist: {input_path}")
 
-    dataframe = pd.read_csv(input_path, low_memory=False)
+    dataframe = pd.read_csv(
+        input_path,
+        low_memory=False,
+    )
     config = load_quality_config(config_path)
     report = validate_dataframe(dataframe, config)
-    write_report(report, report_path)
 
     if not report["schema_passed"]:
         formatted_errors = "\n".join(f"- {error}" for error in report["errors"])
         raise ValueError(f"Data validation failed:\n{formatted_errors}")
+
+    write_report(report, report_path)
 
     return report
 
@@ -142,12 +238,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("reports/validation_report.json"),
     )
+
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    report = run_validation(args.input, args.config, args.report)
+
+    report = run_validation(
+        args.input,
+        args.config,
+        args.report,
+    )
 
     print(
         "Validation passed:",
