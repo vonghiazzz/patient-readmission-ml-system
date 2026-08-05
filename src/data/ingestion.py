@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -25,8 +25,7 @@ def normalize_column_names(dataframe: pd.DataFrame) -> pd.DataFrame:
     """Return a copy with normalized snake-case-like column names."""
     normalized = dataframe.copy()
     normalized.columns = [
-        column.strip().lower().replace(" ", "_").replace("-", "_")
-        for column in normalized.columns
+        column.strip().lower().replace(" ", "_").replace("-", "_") for column in normalized.columns
     ]
     return normalized
 
@@ -85,7 +84,7 @@ def write_metadata(
         "row_count": int(dataframe.shape[0]),
         "column_count": int(dataframe.shape[1]),
         "columns": dataframe.columns.tolist(),
-        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "created_at_utc": datetime.now(UTC).isoformat(),
     }
 
     metadata_path.parent.mkdir(parents=True, exist_ok=True)

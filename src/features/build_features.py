@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pandas as pd
 
-
 REQUIRED_SERVICE_COLUMNS = {
     "number_outpatient",
     "number_emergency",
@@ -26,9 +25,8 @@ def build_features(dataframe: pd.DataFrame) -> pd.DataFrame:
         )
 
     if REQUIRED_ACTIVITY_COLUMNS.issubset(result.columns):
-        result["total_clinical_activities"] = (
-            result["num_lab_procedures"].fillna(0)
-            + result["num_procedures"].fillna(0)
-        )
+        result["total_clinical_activities"] = result["num_lab_procedures"].fillna(0) + result[
+            "num_procedures"
+        ].fillna(0)
 
     return result

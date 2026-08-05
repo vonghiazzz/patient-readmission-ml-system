@@ -35,7 +35,8 @@ mlruns/
 models/*.joblib
 models/*.pkl
 mlruns/
-
+models/*.pickle
+models/*.bin
 
 # Logs
 *.log

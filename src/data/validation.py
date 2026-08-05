@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -52,15 +52,11 @@ def validate_dataframe(
         negative_count = int((numeric_values < 0).sum())
 
         if negative_count:
-            errors.append(
-                f"Column '{column}' contains {negative_count} negative values."
-            )
+            errors.append(f"Column '{column}' contains {negative_count} negative values.")
 
     missing_rate = {
         column: float(rate)
-        for column, rate in dataframe.isna().mean().sort_values(
-            ascending=False
-        ).items()
+        for column, rate in dataframe.isna().mean().sort_values(ascending=False).items()
     }
 
     for column, threshold in config.get("missing_thresholds", {}).items():
@@ -75,28 +71,22 @@ def validate_dataframe(
             )
 
     duplicate_subset = config.get("duplicate_subset", [])
-    usable_subset = [
-        column for column in duplicate_subset if column in dataframe.columns
-    ]
+    usable_subset = [column for column in duplicate_subset if column in dataframe.columns]
 
-    duplicate_count = int(
-        dataframe.duplicated(subset=usable_subset or None).sum()
-    )
+    duplicate_count = int(dataframe.duplicated(subset=usable_subset or None).sum())
 
     if duplicate_count:
         warnings.append(f"Detected {duplicate_count} duplicate rows/keys.")
 
     label_positive_rate = None
     if "readmitted" in dataframe.columns:
-        binary_target = dataframe["readmitted"].map(
-            {"<30": 1, ">30": 0, "NO": 0}
-        )
+        binary_target = dataframe["readmitted"].map({"<30": 1, ">30": 0, "NO": 0})
         if binary_target.notna().any():
             label_positive_rate = float(binary_target.mean())
 
     return {
         "schema_passed": not errors,
-        "validated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "validated_at_utc": datetime.now(UTC).isoformat(),
         "row_count": int(dataframe.shape[0]),
         "column_count": int(dataframe.shape[1]),
         "missing_rate": missing_rate,
@@ -129,9 +119,7 @@ def run_validation(
     write_report(report, report_path)
 
     if not report["schema_passed"]:
-        formatted_errors = "\n".join(
-            f"- {error}" for error in report["errors"]
-        )
+        formatted_errors = "\n".join(f"- {error}" for error in report["errors"])
         raise ValueError(f"Data validation failed:\n{formatted_errors}")
 
     return report

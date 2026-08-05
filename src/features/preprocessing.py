@@ -4,7 +4,6 @@ import argparse
 import json
 from pathlib import Path
 
-# pyrefly: ignore [missing-import]
 import joblib
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -12,9 +11,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-# pyrefly: ignore [missing-import]
 from src.features.build_features import build_features
-
 
 TARGET_COLUMNS = {
     "readmitted",
@@ -31,9 +28,7 @@ def prepare_features(dataframe: pd.DataFrame) -> pd.DataFrame:
     engineered = build_features(dataframe)
 
     columns_to_drop = [
-        column
-        for column in TARGET_COLUMNS | IDENTIFIER_COLUMNS
-        if column in engineered.columns
+        column for column in TARGET_COLUMNS | IDENTIFIER_COLUMNS if column in engineered.columns
     ]
 
     return engineered.drop(columns=columns_to_drop)
@@ -43,9 +38,7 @@ def create_preprocessor(
     dataframe: pd.DataFrame,
 ) -> tuple[ColumnTransformer, list[str], list[str]]:
     numeric_columns = dataframe.select_dtypes(include="number").columns.tolist()
-    categorical_columns = [
-        column for column in dataframe.columns if column not in numeric_columns
-    ]
+    categorical_columns = [column for column in dataframe.columns if column not in numeric_columns]
 
     numeric_pipeline = Pipeline(
         steps=[
@@ -86,9 +79,7 @@ def fit_and_save_preprocessor(
     train = pd.read_csv(train_path, low_memory=False)
     train_features = prepare_features(train)
 
-    preprocessor, numeric_columns, categorical_columns = create_preprocessor(
-        train_features
-    )
+    preprocessor, numeric_columns, categorical_columns = create_preprocessor(train_features)
 
     # Fit only on training data.
     preprocessor.fit(train_features)

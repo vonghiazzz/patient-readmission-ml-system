@@ -8,7 +8,6 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import GroupShuffleSplit
 
-
 TARGET_MAPPING = {
     "<30": 1,
     ">30": 0,
@@ -17,9 +16,7 @@ TARGET_MAPPING = {
 
 
 def hash_identifiers(values: pd.Series) -> str:
-    normalized = "|".join(
-        sorted(values.dropna().astype(str).unique().tolist())
-    )
+    normalized = "|".join(sorted(values.dropna().astype(str).unique().tolist()))
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
