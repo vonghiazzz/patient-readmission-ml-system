@@ -68,7 +68,6 @@ Kiểm tra output local:
 
 ls -lh data/interim/ingested_data.csv
 ls -lh data/interim/splits/train.csv
-ls -lh data/interim/splits/validation.csv
 ls -lh data/interim/splits/test.csv
 ls -lh models/preprocessor.joblib
 
