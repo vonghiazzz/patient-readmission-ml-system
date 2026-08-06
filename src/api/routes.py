@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from src.api.dependencies import get_settings_dependency
 from src.api.schemas import (
+    ErrorResponse,
     HealthResponse,
     PredictionRequest,
     PredictionResponse,
@@ -42,21 +43,35 @@ def health(
     tags=["Operations"],
 )
 def readiness() -> ReadinessResponse:
-    """Return the Phase 1 mock readiness state."""
+    """Return the Phase 2 mock readiness state."""
 
     return ReadinessResponse(
         status="ready",
         mode="mock",
         model_loaded=False,
-        message=("Phase 1 API skeleton is ready; real model artifacts are not integrated yet."),
+        message=("Phase 2 API contract is ready; real model artifacts are not integrated yet."),
     )
 
 
 @router.post(
     "/api/v1/predict",
     response_model=PredictionResponse,
+    responses={
+        422: {
+            "model": ErrorResponse,
+            "description": "The request does not satisfy the API contract.",
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "An unexpected server error occurred.",
+        },
+        503: {
+            "model": ErrorResponse,
+            "description": "Required model artifacts are unavailable.",
+        },
+    },
     tags=["Prediction"],
-    summary="Return a Phase 1 mock prediction",
+    summary="Return a Phase 2 mock prediction",
 )
 def predict(
     request: PredictionRequest,
@@ -70,6 +85,6 @@ def predict(
         predicted_readmission=False,
         risk_band="mock",
         threshold=0.5,
-        model_version="mock-phase-1",
+        model_version="mock-phase-2",
         is_mock=True,
     )
