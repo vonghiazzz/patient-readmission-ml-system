@@ -1,0 +1,226 @@
+{
+  "handoff_version": "v1",
+  "generated_at_utc": "2026-08-06T16:23:01.945507+00:00",
+  "purpose": "Member A aggregate data handoff for Member B model development",
+  "dataset": {
+    "row_count": 101766,
+    "column_count": 50,
+    "patient_count": 71518,
+    "duplicate_encounter_count": 0,
+    "target": {
+      "row_count": 101766,
+      "negative_count": 90409,
+      "positive_count": 11357,
+      "positive_rate": 0.11159915885462728
+    },
+    "top_missing_columns": [
+      {
+        "column": "weight",
+        "missing_count": 98569,
+        "missing_rate": 0.9685847925633315
+      },
+      {
+        "column": "max_glu_serum",
+        "missing_count": 96420,
+        "missing_rate": 0.9474677200636755
+      },
+      {
+        "column": "a1cresult",
+        "missing_count": 84748,
+        "missing_rate": 0.8327732248491637
+      },
+      {
+        "column": "medical_specialty",
+        "missing_count": 49949,
+        "missing_rate": 0.49082208203132677
+      },
+      {
+        "column": "payer_code",
+        "missing_count": 40256,
+        "missing_rate": 0.395574160328597
+      },
+      {
+        "column": "race",
+        "missing_count": 2273,
+        "missing_rate": 0.022335554114340742
+      },
+      {
+        "column": "diag_3",
+        "missing_count": 1423,
+        "missing_rate": 0.013983059174970029
+      },
+      {
+        "column": "diag_2",
+        "missing_count": 358,
+        "missing_rate": 0.0035178743391702533
+      },
+      {
+        "column": "diag_1",
+        "missing_count": 21,
+        "missing_rate": 0.0002063557573256294
+      }
+    ]
+  },
+  "data_quality": {
+    "schema_passed": true,
+    "errors": [],
+    "warnings": []
+  },
+  "target_contract": {
+    "name": "readmitted_30d",
+    "mapping": {
+      "<30": 1,
+      ">30": 0,
+      "NO": 0
+    },
+    "positive_class": 1,
+    "positive_meaning": "readmitted within 30 days (<30)"
+  },
+  "split_contract": {
+    "strategy": "patient_aware_group_shuffle_split",
+    "train": {
+      "row_count": 71520,
+      "negative_count": 63499,
+      "positive_count": 8021,
+      "positive_rate": 0.11215044742729306,
+      "patient_count": 50062
+    },
+    "test": {
+      "row_count": 30246,
+      "negative_count": 26910,
+      "positive_count": 3336,
+      "positive_rate": 0.1102955762745487,
+      "patient_count": 21456
+    },
+    "patient_overlap": false,
+    "selection_policy": "Use cross-validation or an inner validation split inside train only. Keep test locked until final evaluation."
+  },
+  "feature_contract": {
+    "preprocessor_version": "v1",
+    "raw_input_feature_count": 49,
+    "transformed_feature_count": 2331,
+    "input_feature_order": [
+      "race",
+      "gender",
+      "age",
+      "weight",
+      "admission_type_id",
+      "discharge_disposition_id",
+      "admission_source_id",
+      "time_in_hospital",
+      "payer_code",
+      "medical_specialty",
+      "num_lab_procedures",
+      "num_procedures",
+      "num_medications",
+      "number_outpatient",
+      "number_emergency",
+      "number_inpatient",
+      "diag_1",
+      "diag_2",
+      "diag_3",
+      "number_diagnoses",
+      "max_glu_serum",
+      "a1cresult",
+      "metformin",
+      "repaglinide",
+      "nateglinide",
+      "chlorpropamide",
+      "glimepiride",
+      "acetohexamide",
+      "glipizide",
+      "glyburide",
+      "tolbutamide",
+      "pioglitazone",
+      "rosiglitazone",
+      "acarbose",
+      "miglitol",
+      "troglitazone",
+      "tolazamide",
+      "examide",
+      "citoglipton",
+      "insulin",
+      "glyburide_metformin",
+      "glipizide_metformin",
+      "glimepiride_pioglitazone",
+      "metformin_rosiglitazone",
+      "metformin_pioglitazone",
+      "change",
+      "diabetesmed",
+      "service_utilization",
+      "total_clinical_activities"
+    ],
+    "numeric_columns": [
+      "admission_type_id",
+      "discharge_disposition_id",
+      "admission_source_id",
+      "time_in_hospital",
+      "num_lab_procedures",
+      "num_procedures",
+      "num_medications",
+      "number_outpatient",
+      "number_emergency",
+      "number_inpatient",
+      "number_diagnoses",
+      "service_utilization",
+      "total_clinical_activities"
+    ],
+    "categorical_columns": [
+      "race",
+      "gender",
+      "age",
+      "weight",
+      "payer_code",
+      "medical_specialty",
+      "diag_1",
+      "diag_2",
+      "diag_3",
+      "max_glu_serum",
+      "a1cresult",
+      "metformin",
+      "repaglinide",
+      "nateglinide",
+      "chlorpropamide",
+      "glimepiride",
+      "acetohexamide",
+      "glipizide",
+      "glyburide",
+      "tolbutamide",
+      "pioglitazone",
+      "rosiglitazone",
+      "acarbose",
+      "miglitol",
+      "troglitazone",
+      "tolazamide",
+      "examide",
+      "citoglipton",
+      "insulin",
+      "glyburide_metformin",
+      "glipizide_metformin",
+      "glimepiride_pioglitazone",
+      "metformin_rosiglitazone",
+      "metformin_pioglitazone",
+      "change",
+      "diabetesmed"
+    ],
+    "target_columns_excluded": [
+      "readmitted",
+      "readmitted_30d"
+    ],
+    "identifier_columns_excluded": [
+      "encounter_id",
+      "patient_nbr"
+    ],
+    "sample_transform_verified": true
+  },
+  "artifacts": {
+    "preprocessor_path": "models/preprocessor.joblib",
+    "preprocessor_sha256": "e22e630afbfe5d792802e88743fbad7ca5f22b648574bbba91eba6c1ffbc88e8",
+    "preprocessor_metadata_path": "models/preprocessor_metadata.json",
+    "preprocessor_metadata_sha256": "e6bc5e3cd39787ae657f6b89371c6457d81c61daad5a62784a6c528b4eed14dd"
+  },
+  "privacy": {
+    "contains_patient_level_rows": false,
+    "patient_identifiers_published": false
+  }
+}

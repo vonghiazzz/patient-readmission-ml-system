@@ -43,7 +43,7 @@ def add_binary_target(dataframe: pd.DataFrame) -> pd.DataFrame:
 def create_patient_aware_splits(
     dataframe: pd.DataFrame,
     random_state: int = 42,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     required = {"patient_nbr", "readmitted"}
     missing = required - set(dataframe.columns)
 
@@ -52,14 +52,14 @@ def create_patient_aware_splits(
 
     dataframe = add_binary_target(dataframe)
 
-    first_split = GroupShuffleSplit(
+    splitter = GroupShuffleSplit(
         n_splits=1,
         train_size=0.70,
         random_state=random_state,
     )
 
-    train_index, temporary_index = next(
-        first_split.split(
+    train_index, test_index = next(
+        splitter.split(
             dataframe,
             y=dataframe["readmitted_30d"],
             groups=dataframe["patient_nbr"],
@@ -67,45 +67,20 @@ def create_patient_aware_splits(
     )
 
     train = dataframe.iloc[train_index].copy()
-    temporary = dataframe.iloc[temporary_index].copy()
+    test = dataframe.iloc[test_index].copy()
 
-    second_split = GroupShuffleSplit(
-        n_splits=1,
-        train_size=0.50,
-        random_state=random_state,
-    )
-
-    validation_index, test_index = next(
-        second_split.split(
-            temporary,
-            y=temporary["readmitted_30d"],
-            groups=temporary["patient_nbr"],
-        )
-    )
-
-    validation = temporary.iloc[validation_index].copy()
-    test = temporary.iloc[test_index].copy()
-
-    return train, validation, test
+    return train, test
 
 
 def assert_no_patient_overlap(
     train: pd.DataFrame,
-    validation: pd.DataFrame,
     test: pd.DataFrame,
 ) -> None:
     train_patients = set(train["patient_nbr"])
-    validation_patients = set(validation["patient_nbr"])
     test_patients = set(test["patient_nbr"])
-
-    if train_patients & validation_patients:
-        raise ValueError("Patient overlap detected between train and validation.")
 
     if train_patients & test_patients:
         raise ValueError("Patient overlap detected between train and test.")
-
-    if validation_patients & test_patients:
-        raise ValueError("Patient overlap detected between validation and test.")
 
 
 def split_summary(dataframe: pd.DataFrame) -> dict[str, object]:
@@ -125,30 +100,31 @@ def run_splitting(
 ) -> None:
     dataframe = pd.read_csv(input_path, low_memory=False)
 
-    train, validation, test = create_patient_aware_splits(
+    train, test = create_patient_aware_splits(
         dataframe,
         random_state=random_state,
     )
-    assert_no_patient_overlap(train, validation, test)
+    assert_no_patient_overlap(train, test)
 
     output_directory.mkdir(parents=True, exist_ok=True)
 
     train.to_csv(output_directory / "train.csv", index=False)
-    validation.to_csv(output_directory / "validation.csv", index=False)
     test.to_csv(output_directory / "test.csv", index=False)
+
+    # Remove output from the previous three-way split so the directory contains
+    # only the two datasets described by the current manifest.
+    (output_directory / "validation.csv").unlink(missing_ok=True)
 
     manifest = {
         "strategy": "patient_aware_group_shuffle_split",
         "random_state": random_state,
         "ratios": {
             "train": 0.70,
-            "validation": 0.15,
-            "test": 0.15,
+            "test": 0.30,
         },
         "target": "readmitted_30d",
         "splits": {
             "train": split_summary(train),
-            "validation": split_summary(validation),
             "test": split_summary(test),
         },
     }
@@ -189,7 +165,7 @@ def main() -> None:
         manifest_path=args.manifest,
         random_state=args.random_state,
     )
-    print("Train/validation/test split completed.")
+    print("Train/test split completed.")
 
 
 if __name__ == "__main__":

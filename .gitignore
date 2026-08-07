@@ -9,6 +9,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
+# Jupyter local state
+**/.ipynb_checkpoints/
+
 # Test and lint cache
 .pytest_cache/
 .ruff_cache/
