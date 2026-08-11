@@ -94,15 +94,9 @@ def test_prepare_features_excludes_targets_and_identifiers(
 
     assert excluded_columns.isdisjoint(prepared.columns)
 
-    assert "service_utilization" in prepared.columns
-    assert "total_clinical_activities" in prepared.columns
-
-    assert prepared["service_utilization"].tolist() == [0, 2, 3]
-    assert prepared["total_clinical_activities"].tolist() == [
-        11,
-        22,
-        33,
-    ]
+    assert prepared["has_outpatient_history"].tolist() == [0, 1, 0]
+    assert prepared["has_emergency_history"].tolist() == [0, 0, 1]
+    assert prepared["has_inpatient_history"].tolist() == [0, 1, 1]
 
     # prepare_features must not mutate the original DataFrame.
     assert "readmitted" in train_dataframe.columns

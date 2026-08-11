@@ -7,6 +7,12 @@ pytest==9.1.1
 pytest-cov==7.1.0
 ruff==0.15.22
 joblib==1.5.3
-pandas==3.0.5
+pandas==2.2.3
 PyYAML==6.0.3
-scikit-learn==1.9.0
+scikit-learn==1.6.1
+xgboost==3.2.0
+catboost==1.2.10
+prometheus-client==0.26.0
+shap==0.51.0
+matplotlib==3.11.1
+mlflow==3.15.1
