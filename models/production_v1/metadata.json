@@ -1,0 +1,35 @@
+{
+  "model_version": "1.0.0",
+  "model_name": "XGBoost V1 Optuna",
+  "model_type": "XGBoost",
+  "feature_set": "V1",
+  "decision_threshold": 0.17,
+  "probability_output": "raw_predict_proba",
+  "posthoc_calibration": "none",
+  "best_iteration": 493,
+  "validation_metrics": {
+    "pr_auc": 0.209404,
+    "roc_auc": 0.647695,
+    "brier_score": 0.098366
+  },
+  "final_holdout_metrics": {
+    "pr_auc": 0.188837,
+    "roc_auc": 0.631469,
+    "brier_score": 0.099806,
+    "precision_at_threshold": 0.182828,
+    "recall_at_threshold": 0.387746,
+    "f1_at_threshold": 0.24849,
+    "specificity_at_threshold": 0.775515
+  },
+  "model_selection": {
+    "primary_metric": "average_precision",
+    "soft_voting_best_pr_auc": 0.210101,
+    "soft_voting_delta_pr_auc": 0.000697,
+    "bootstrap_mean_delta_pr_auc": 0.000521,
+    "bootstrap_95_ci_delta_pr_auc": [
+      -0.00188,
+      0.002827
+    ],
+    "production_decision": "Retain tuned XGBoost; soft-voting PR-AUC improvement was not robust and did not justify additional serving complexity."
+  }
+}

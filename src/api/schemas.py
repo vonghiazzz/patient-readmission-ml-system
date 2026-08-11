@@ -1,162 +1,151 @@
-"""Versioned request and response contracts for the readmission API."""
+"""Manifest-driven request and response contracts for the production API."""
 
-from typing import Annotated
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, create_model
 
-NonEmptyString = Annotated[str, Field(min_length=1, max_length=100)]
-NonNegativeInt = Annotated[int, Field(ge=0)]
-PositiveInt = Annotated[int, Field(ge=1)]
+from src.api.dependencies import FROZEN_SCHEMA_ARTIFACT_DIR, load_schema_contract
 
 
 class HealthResponse(BaseModel):
-    """Response returned by the process health endpoint."""
-
     status: str = Field(examples=["healthy"])
     service: str
     version: str
 
 
 class ReadinessResponse(BaseModel):
-    """Response describing whether model-backed inference is available."""
-
     status: str = Field(examples=["ready"])
-    mode: str = Field(examples=["mock"])
     model_loaded: bool
+    contract_validated: bool
+    model_version: str | None = None
+    feature_set: str | None = None
     message: str
 
 
-class PredictionRequest(BaseModel):
-    """Leakage-safe patient features available at prediction time.
-
-    Identifiers, source/derived targets and engineered aggregate features are
-    deliberately excluded. The two aggregate features are computed by the
-    preprocessing pipeline from the request's service and activity counts.
-    """
-
+class PredictionResponse(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
-        str_strip_whitespace=True,
         json_schema_extra={
-            "examples": [
-                {
-                    "race": "Caucasian",
-                    "gender": "Female",
-                    "age": "[60-70)",
-                    "time_in_hospital": 4,
-                    "num_lab_procedures": 42,
-                    "num_procedures": 1,
-                    "num_medications": 12,
-                    "number_outpatient": 2,
-                    "number_emergency": 0,
-                    "number_inpatient": 1,
-                    "number_diagnoses": 7,
-                    "insulin": "Steady",
-                    "change": "No",
-                    "diabetesmed": "Yes",
-                }
-            ]
+            "example": {
+                "model_version": "1.0.0",
+                "risk_score": 0.23,
+                "decision_threshold": 0.17,
+                "prediction": 1,
+                "status": "high_risk",
+            }
         },
     )
 
-    race: NonEmptyString | None = Field(default=None, examples=["Caucasian"])
-    gender: NonEmptyString = Field(examples=["Female"])
-    age: NonEmptyString = Field(examples=["[60-70)"])
-    weight: NonEmptyString | None = Field(default=None, examples=["[75-100)"])
-
-    admission_type_id: NonNegativeInt | None = None
-    discharge_disposition_id: NonNegativeInt | None = None
-    admission_source_id: NonNegativeInt | None = None
-    time_in_hospital: PositiveInt
-
-    payer_code: NonEmptyString | None = None
-    medical_specialty: NonEmptyString | None = None
-
-    num_lab_procedures: NonNegativeInt
-    num_procedures: NonNegativeInt
-    num_medications: NonNegativeInt
-    number_outpatient: NonNegativeInt
-    number_emergency: NonNegativeInt
-    number_inpatient: NonNegativeInt
-
-    diag_1: NonEmptyString | None = None
-    diag_2: NonEmptyString | None = None
-    diag_3: NonEmptyString | None = None
-    number_diagnoses: NonNegativeInt
-
-    max_glu_serum: NonEmptyString | None = None
-    a1cresult: NonEmptyString | None = None
-
-    metformin: NonEmptyString | None = None
-    repaglinide: NonEmptyString | None = None
-    nateglinide: NonEmptyString | None = None
-    chlorpropamide: NonEmptyString | None = None
-    glimepiride: NonEmptyString | None = None
-    acetohexamide: NonEmptyString | None = None
-    glipizide: NonEmptyString | None = None
-    glyburide: NonEmptyString | None = None
-    tolbutamide: NonEmptyString | None = None
-    pioglitazone: NonEmptyString | None = None
-    rosiglitazone: NonEmptyString | None = None
-    acarbose: NonEmptyString | None = None
-    miglitol: NonEmptyString | None = None
-    troglitazone: NonEmptyString | None = None
-    tolazamide: NonEmptyString | None = None
-    examide: NonEmptyString | None = None
-    citoglipton: NonEmptyString | None = None
-    insulin: NonEmptyString | None = None
-    glyburide_metformin: NonEmptyString | None = None
-    glipizide_metformin: NonEmptyString | None = None
-    glimepiride_pioglitazone: NonEmptyString | None = None
-    metformin_rosiglitazone: NonEmptyString | None = None
-    metformin_pioglitazone: NonEmptyString | None = None
-    change: NonEmptyString | None = None
-    diabetesmed: NonEmptyString | None = None
-
-
-class PredictionResponse(BaseModel):
-    """Response returned by the prediction endpoint."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "readmission_probability": 0.0,
-                    "predicted_readmission": False,
-                    "risk_band": "mock",
-                    "threshold": 0.5,
-                    "model_version": "mock-phase-2",
-                    "is_mock": True,
-                }
-            ]
-        }
-    )
-
-    readmission_probability: float = Field(ge=0, le=1)
-    predicted_readmission: bool
-    risk_band: str
-    threshold: float = Field(ge=0, le=1)
     model_version: str
-    is_mock: bool
+    risk_score: float = Field(ge=0, le=1)
+    decision_threshold: float = Field(ge=0, le=1)
+    prediction: int = Field(ge=0, le=1)
+    status: str = Field(examples=["high_risk", "not_high_risk"])
 
 
 class ErrorDetail(BaseModel):
-    """One privacy-safe input validation error."""
-
     location: list[str | int]
     message: str
     error_type: str
 
 
 class APIError(BaseModel):
-    """Stable error envelope content."""
-
     code: str
     message: str
     details: list[ErrorDetail] = Field(default_factory=list)
 
 
 class ErrorResponse(BaseModel):
-    """Stable error response returned by API exception handlers."""
-
     error: APIError
+
+
+def _prediction_field_definitions() -> dict[str, tuple[Any, Any]]:
+    """Derive public field names and type semantics from frozen artifacts."""
+
+    manifest, preprocessor = load_schema_contract(FROZEN_SCHEMA_ARTIFACT_DIR)
+    request_features = manifest.get("request_features")
+    if not isinstance(request_features, list) or len(request_features) != 42:
+        raise RuntimeError("Production request manifest must contain exactly 42 features")
+
+    transformer_columns = {
+        name: set(columns)
+        for name, _transformer, columns in preprocessor.transformers_
+        if name != "remainder" and not isinstance(columns, str)
+    }
+    numeric = transformer_columns.get("numeric", set())
+    categorical = transformer_columns.get("categorical", set())
+
+    definitions: dict[str, tuple[Any, Any]] = {}
+    for feature in request_features:
+        if feature in numeric:
+            minimum = 1 if feature == "time_in_hospital" else 0
+            definitions[feature] = (Annotated[int, Field(ge=minimum)], ...)
+        elif feature in categorical and feature.endswith("_id"):
+            # These integer IDs are intentionally routed through the fitted
+            # categorical pipeline; accepting int preserves training semantics.
+            definitions[feature] = (Annotated[int, Field(ge=0)], ...)
+        elif feature in categorical:
+            definitions[feature] = (
+                Annotated[str | None, Field(min_length=1, max_length=100)],
+                ...,
+            )
+        else:
+            raise RuntimeError(f"Request feature is absent from fitted preprocessor: {feature}")
+    return definitions
+
+
+def _synthetic_prediction_example() -> dict[str, Any]:
+    """Build a non-patient example from the fitted schema vocabulary."""
+
+    manifest, preprocessor = load_schema_contract(FROZEN_SCHEMA_ARTIFACT_DIR)
+    preferred_categories = {
+        "race": "Caucasian",
+        "gender": "Female",
+        "age": "[60-70)",
+        "payer_code": "MC",
+        "medical_specialty": "InternalMedicine",
+        "max_glu_serum": "Missing",
+        "A1Cresult": ">8",
+        "insulin": "Steady",
+        "diabetesMed": "Yes",
+        "admission_type_id": 1,
+        "admission_source_id": 7,
+    }
+    example: dict[str, Any] = {}
+    for transformer_name, transformer, columns in preprocessor.transformers_:
+        if transformer_name == "remainder" or isinstance(columns, str):
+            continue
+        if transformer_name == "numeric":
+            for column in columns:
+                if column in manifest["request_features"]:
+                    example[column] = 4 if column == "time_in_hospital" else 1
+            continue
+
+        encoder = transformer.named_steps["encoder"]
+        for column, categories in zip(columns, encoder.categories_, strict=True):
+            if column not in manifest["request_features"]:
+                continue
+            preferred = preferred_categories.get(column)
+            available = [
+                value.item() if hasattr(value, "item") else value
+                for value in categories
+                if str(value) != "nan"
+            ]
+            example[column] = preferred if preferred in available else available[0]
+    return {name: example[name] for name in manifest["request_features"]}
+
+
+PredictionRequest = create_model(
+    "PredictionRequest",
+    __config__=ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+        title="PredictionRequest",
+        json_schema_extra={"example": _synthetic_prediction_example()},
+    ),
+    **_prediction_field_definitions(),
+)
+PredictionRequest.__doc__ = (
+    "Exactly 42 source features from the frozen V1 feature manifest. "
+    "Identifiers, targets, excluded diagnoses, and derived fields are forbidden."
+)
