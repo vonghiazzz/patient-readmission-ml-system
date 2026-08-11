@@ -1,0 +1,73 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [{"expr": "sum(rate(readmission_http_requests_total{route!=\"/metrics\"}[1m]))", "legendFormat": "requests/s", "refId": "A"}],
+      "title": "Request volume",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(readmission_http_request_duration_seconds_bucket[5m])))", "legendFormat": "p95", "refId": "A"}],
+      "title": "Request latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "targets": [{"expr": "sum(rate(readmission_http_errors_total[5m])) / clamp_min(sum(rate(readmission_http_requests_total[5m])), 0.001)", "legendFormat": "error rate", "refId": "A"}],
+      "title": "Error rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "targets": [{"expr": "sum by (le) (increase(readmission_prediction_risk_score_bucket[15m]))", "legendFormat": "<= {{le}}", "refId": "A"}],
+      "title": "Prediction-risk distribution",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 16},
+      "id": 5,
+      "targets": [{"expr": "sum(rate(readmission_predictions_total{prediction=\"1\"}[5m])) / clamp_min(sum(rate(readmission_predictions_total[5m])), 0.001)", "legendFormat": "positive rate", "refId": "A"}],
+      "title": "Predicted-positive rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 16},
+      "id": 6,
+      "targets": [{"expr": "readmission_model_ready", "legendFormat": "ready", "refId": "A"}],
+      "title": "Model readiness",
+      "type": "stat"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["patient-readmission", "production-v1"],
+  "templating": {"list": []},
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "Patient Readmission API",
+  "uid": "patient-readmission-api",
+  "version": 1
+}

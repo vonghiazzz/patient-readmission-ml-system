@@ -1,0 +1,48 @@
+groups:
+  - name: patient-readmission-api
+    rules:
+      - alert: ReadmissionApiUnavailable
+        expr: up{job="readmission-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Patient Readmission API is unavailable
+          description: Prometheus has been unable to scrape the API for one minute.
+
+      - alert: ReadmissionModelNotReady
+        expr: readmission_model_ready == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Frozen production model is not ready
+          description: The production artifact contract has remained unavailable for one minute.
+
+      - alert: ReadmissionApiElevatedErrorRate
+        expr: |
+          (
+            sum(rate(readmission_http_errors_total[5m]))
+            /
+            clamp_min(sum(rate(readmission_http_requests_total[5m])), 0.001)
+          ) > 0.05
+          and sum(rate(readmission_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Patient Readmission API error rate is elevated
+          description: More than 5% of requests have failed during the last five minutes.
+
+      - alert: ReadmissionApiHighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(readmission_http_request_duration_seconds_bucket[5m]))
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Patient Readmission API latency is high
+          description: The five-minute p95 request latency has exceeded one second.

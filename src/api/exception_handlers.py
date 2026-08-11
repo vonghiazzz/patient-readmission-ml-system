@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from src.api.dependencies import ArtifactContractError
 from src.api.schemas import APIError, ErrorDetail, ErrorResponse
 
 
@@ -61,6 +62,17 @@ async def model_unavailable_exception_handler(
     )
 
 
+async def artifact_contract_exception_handler(
+    _request: Request,
+    _exception: ArtifactContractError,
+) -> JSONResponse:
+    return error_response(
+        status_code=503,
+        code="model_unavailable",
+        message="The production artifacts are unavailable or invalid.",
+    )
+
+
 async def http_exception_handler(
     _request: Request,
     exception: StarletteHTTPException,
@@ -95,5 +107,6 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(ModelUnavailableError, model_unavailable_exception_handler)
+    app.add_exception_handler(ArtifactContractError, artifact_contract_exception_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)

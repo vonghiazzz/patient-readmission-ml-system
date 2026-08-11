@@ -1,56 +1,130 @@
-version: "3.9"
-
 services:
   api:
-    build: .
-    container_name: readmission-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: patient-readmission-api:1.0.0
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     environment:
-      - MODEL_PATH=/app/models/latest_model.pkl
-    depends_on:
-      - mlflow
+      APP_VERSION: "1.0.0"
+      ENVIRONMENT: "${ENVIRONMENT:-development}"
+      PRODUCTION_ARTIFACT_DIR: /app/models/production_v1
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)
+      interval: 10s
       timeout: 5s
-      retries: 3
-    volumes:
-      - ./models:/app/models:ro
+      start_period: 20s
+      retries: 6
+    restart: unless-stopped
 
   mlflow:
-    image: python:3.11-slim
-    container_name: mlflow-server
+    image: ghcr.io/mlflow/mlflow:v3.15.1
+    command:
+      - mlflow
+      - server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+      - --allowed-hosts
+      - mlflow:5000,localhost:5050,127.0.0.1:5050
+      - --backend-store-uri
+      - sqlite:////mlflow/mlflow.db
+      - --artifacts-destination
+      - /mlflow/artifacts
+      - --serve-artifacts
     ports:
-      - "5000:5000"
+      - "${MLFLOW_PORT:-5050}:5000"
     volumes:
-      - ./mlruns:/mlflow/mlruns
-    command: >
-      bash -c "pip install mlflow &&
-      mlflow server --host 0.0.0.0 --port 5000
-      --backend-store-uri /mlflow/mlruns"
+      - mlflow-data:/mlflow
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3)
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
+    restart: unless-stopped
+
+  mlflow-init:
+    image: patient-readmission-api:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      - python
+      - -m
+      - src.evaluation.mlflow_champion
+      - --artifact-dir
+      - /app/models/production_v1
+      - --tracking-uri
+      - http://mlflow:5000
+      - --experiment-name
+      - patient-readmission-production
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    restart: "no"
 
   prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus-data:/prometheus
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 6
+    restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
+    image: grafana/grafana:12.1.0
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
-      - ./monitoring/grafana:/var/lib/grafana
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
+    restart: unless-stopped
 
-networks:
-  default:
-    name: readmission-net
+volumes:
+  mlflow-data:
+  prometheus-data:
+  grafana-data:

@@ -8,16 +8,13 @@ class Settings(BaseSettings):
     """Environment-driven settings shared by the API service."""
 
     app_name: str = "Patient Readmission API"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0"
     environment: str = "development"
 
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
-    # Reserved for the real artifacts delivered in Phase 3.
-    model_path: Path = Path("models/model.joblib")
-    preprocessor_path: Path = Path("models/preprocessor.joblib")
-    metadata_path: Path = Path("models/metadata.json")
+    production_artifact_dir: Path = Path("models/production_v1")
 
     log_level: str = "INFO"
 
