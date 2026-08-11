@@ -1,8 +1,9 @@
 # Patient Readmission ML System
 
-Production-like course project serving the frozen XGBoost V1 champion for relative 30-day hospital
-readmission risk. The system is decision support for prioritization and human review—not diagnosis,
-treatment advice, or an autonomous clinical system.
+Production-like course project serving the frozen XGBoost V1 champion and a separately supplied
+experimental CatBoost model for relative 30-day hospital readmission risk. The system is decision
+support for prioritization and human review—not diagnosis, treatment advice, or an autonomous
+clinical system.
 
 ## Final frozen contract
 
@@ -18,6 +19,10 @@ treatment advice, or an autonomous clinical system.
 The authoritative files are under `models/production_v1/`: `model.joblib`,
 `preprocessor.joblib`, `feature_manifest.json`, and `metadata.json`. Serving never trains, tunes,
 resamples, calibrates, or changes the threshold.
+
+`cat_tunning_model.pkl` is an additional unversioned CatBoost artifact. It is served only by
+`POST /predict/catboost`, does not replace the champion, and is not part of the frozen XGBoost
+42 → 3 → 45 → 223 contract.
 
 ## Components
 
@@ -89,6 +94,18 @@ response contains `model_version`, `risk_score`, `decision_threshold`, `predicti
 `prediction` is 1 exactly when `risk_score >= 0.17`. The score is not proof of severity, diagnosis,
 or guaranteed readmission.
 
+Submit the separate 52-feature CatBoost example:
+
+```bash
+curl --fail-with-body -X POST http://localhost:8000/predict/catboost \
+  -H 'Content-Type: application/json' \
+  --data @docs/api/sample_catboost_request.json
+```
+
+CatBoost uses the feature order and categorical indices embedded in `cat_tunning_model.pkl`, and
+its artifact threshold is `0.5`. The response identifies the model type and artifact SHA-256 so it
+cannot be confused with XGBoost model version `1.0.0`.
+
 Invalid request example:
 
 ```bash
@@ -101,7 +118,8 @@ It returns HTTP 422 without echoing the submitted value.
 
 ## Docker image
 
-The production image runs as a non-root user and contains the real frozen bundle and reports.
+The production image runs as a non-root user and contains the real frozen XGBoost bundle, the
+experimental CatBoost artifact, and approved reports.
 
 ```bash
 docker build -t patient-readmission-api:1.0.0 .
@@ -116,6 +134,9 @@ curl --fail http://localhost:8000/ready
 curl --fail-with-body -X POST http://localhost:8000/predict \
   -H 'Content-Type: application/json' \
   --data @docs/api/sample_request.json
+curl --fail-with-body -X POST http://localhost:8000/predict/catboost \
+  -H 'Content-Type: application/json' \
+  --data @docs/api/sample_catboost_request.json
 curl --fail http://localhost:8000/metrics
 ```
 
@@ -196,15 +217,15 @@ This command reloads and logs existing artifacts; it does not fit a model.
 
 ## Security, privacy, and artifact policy
 
-- `patient_nbr`, `encounter_id`, target fields, diagnoses, weight, and discharge disposition are not
-  accepted by the production API.
+- `patient_nbr`, `encounter_id`, and target fields are accepted by neither endpoint. The XGBoost
+  endpoint also excludes diagnosis and discharge-disposition fields according to its manifest;
+  CatBoost accepts its engineered `level1_diag1` and categorical `discharge_disposition_id` because
+  both are embedded features of that separate artifact.
 - Request bodies and demographic/raw feature values are not used as metric labels or logged.
 - `.env`, raw/interim patient data, caches, and local MLflow state are ignored by Git.
-- The four production artifacts are small enough for normal Git or Git LFS, but the team must choose
-  and document one policy. CI requires those files to be available after checkout.
-
-At this audit point `models/production_v1/` is untracked locally. Do not push until the team chooses
-normal Git, Git LFS, or an authenticated CI download mechanism.
+- The four frozen XGBoost artifacts, approved reports, and CatBoost artifact are tracked in normal
+  Git and verified by CI after checkout. Raw/interim patient data and local MLflow state remain
+  excluded.
 
 ## XGBoost portability note
 
@@ -217,7 +238,9 @@ expose reproducibility regressions.
 
 ## Troubleshooting
 
-- `/health` 200 but `/ready` 503: verify the four files and `PRODUCTION_ARTIFACT_DIR`.
+- `/health` 200 but `/ready` 503: verify the four XGBoost files and
+  `PRODUCTION_ARTIFACT_DIR`.
+- `/predict/catboost` 503: verify `cat_tunning_model.pkl` and `CATBOOST_MODEL_PATH`.
 - Docker cannot connect: start Docker Desktop/OrbStack before build or Compose commands.
 - Prometheus target down: confirm API health and `api:8000/metrics` from the Compose network.
 - Grafana has no data: verify Prometheus target `UP`, generate a few predictions, and select the last

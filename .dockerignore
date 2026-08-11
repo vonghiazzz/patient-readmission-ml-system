@@ -23,6 +23,7 @@ models/production_v1/*
 !models/production_v1/preprocessor.joblib
 !models/production_v1/feature_manifest.json
 !models/production_v1/metadata.json
+!models/production_v1/cat_tunning_model.pkl
 !models/production_v1/reports/
 models/production_v1/reports/*
 !models/production_v1/reports/global_shap_original_features.csv

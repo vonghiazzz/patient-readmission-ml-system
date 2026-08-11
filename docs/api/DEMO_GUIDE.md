@@ -31,8 +31,9 @@ Explain that health is process liveness, while readiness requires all four froze
 
 ## 3. Swagger
 
-Open <http://localhost:8000/docs>. Expand `POST /predict`; Swagger must show exactly 42 required
-source fields, the synthetic request example, response schema, and 422/500/503 responses.
+Open <http://localhost:8000/docs>. Swagger must show both `POST /predict` and
+`POST /predict/catboost`. Expand `/predict` to show 42 XGBoost source fields, then expand
+`/predict/catboost` to show 52 already-engineered CatBoost fields. Both examples are synthetic.
 
 ## 4. Valid prediction
 
@@ -52,6 +53,17 @@ Explain the response precisely:
 - `model_version` is the model contract version. It is distinct from the API/service version even if
   both currently display `1.0.0`.
 
+Run the experimental CatBoost request separately:
+
+```bash
+curl --fail-with-body -X POST http://localhost:8000/predict/catboost \
+  -H 'Content-Type: application/json' \
+  --data @docs/api/sample_catboost_request.json
+```
+
+Explain that CatBoost uses its embedded threshold `0.5` and is identified by model type plus
+artifact SHA-256 because it has no approved semantic version. It does not replace XGBoost V1.
+
 ## 5. Invalid prediction
 
 ```bash
@@ -68,7 +80,8 @@ Show HTTP 422 and the stable validation error. Confirm the submitted value is no
 python scripts/smoke_test.py --base-url http://localhost:8000
 ```
 
-This checks `/health`, `/ready`, `/predict`, `/api/v1/predict`, invalid input, and `/metrics`.
+This checks `/health`, `/ready`, XGBoost, CatBoost, the compatibility alias, invalid input, and
+`/metrics`.
 
 ## 7. Prometheus metrics and target
 
@@ -146,6 +159,7 @@ Do not add `-v` during normal rehearsal because that deletes monitoring and MLfl
 - [ ] `/health` response
 - [ ] `/ready` response showing `1.0.0` and `V1`
 - [ ] Swagger `/predict` 42-field example
+- [ ] Swagger `/predict/catboost` 52-field example
 - [ ] successful synthetic prediction response
 - [ ] invalid request 422 without submitted value
 - [ ] `/metrics` privacy-safe metric names

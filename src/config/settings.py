@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
 
     production_artifact_dir: Path = Path("models/production_v1")
+    catboost_model_path: Path = Path("models/production_v1/cat_tunning_model.pkl")
 
     log_level: str = "INFO"
 

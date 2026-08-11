@@ -2,12 +2,18 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
 
+from src.api.catboost_dependencies import (
+    CatBoostArtifacts,
+    get_catboost_artifacts_dependency,
+)
 from src.api.dependencies import (
     ProductionArtifacts,
     get_production_artifacts_dependency,
     get_settings_dependency,
 )
 from src.api.schemas import (
+    CatBoostPredictionRequest,
+    CatBoostPredictionResponse,
     ErrorResponse,
     HealthResponse,
     PredictionRequest,
@@ -27,6 +33,10 @@ SettingsDependency = Annotated[Settings, Depends(get_settings_dependency)]
 ArtifactsDependency = Annotated[
     ProductionArtifacts,
     Depends(get_production_artifacts_dependency),
+]
+CatBoostArtifactsDependency = Annotated[
+    CatBoostArtifacts,
+    Depends(get_catboost_artifacts_dependency),
 ]
 
 
@@ -111,9 +121,42 @@ def predict(
     """Run manifest-ordered preprocessing and raw XGBoost probability inference."""
 
     result = artifacts.predict(request.model_dump())
-    record_prediction(result.risk_score, result.prediction)
+    record_prediction(result.risk_score, result.prediction, model="xgboost_v1")
     return PredictionResponse(
         model_version=artifacts.model_version,
+        risk_score=result.risk_score,
+        decision_threshold=artifacts.decision_threshold,
+        prediction=result.prediction,
+        status="high_risk" if result.prediction else "not_high_risk",
+    )
+
+
+@router.post(
+    "/predict/catboost",
+    operation_id="predictReadmissionRiskWithCatBoost",
+    response_model=CatBoostPredictionResponse,
+    responses={
+        422: {"model": ErrorResponse, "description": "Request schema validation failed."},
+        500: {"model": ErrorResponse, "description": "Unexpected server error."},
+        503: {"model": ErrorResponse, "description": "CatBoost artifact is unavailable."},
+    },
+    tags=["Prediction"],
+    summary="Predict readmission risk with the experimental CatBoost artifact",
+    description=(
+        "Accepts exactly the 52 already-engineered features embedded in "
+        "cat_tunning_model.pkl. This endpoint is independent of the frozen XGBoost V1 "
+        "champion and uses the CatBoost artifact's probability threshold (0.5)."
+    ),
+)
+def predict_catboost(
+    request: CatBoostPredictionRequest,
+    artifacts: CatBoostArtifactsDependency,
+) -> CatBoostPredictionResponse:
+    result = artifacts.predict(request.model_dump())
+    record_prediction(result.risk_score, result.prediction, model="catboost_experimental")
+    return CatBoostPredictionResponse(
+        model_type="CatBoostClassifier",
+        artifact_sha256=artifacts.sha256,
         risk_score=result.risk_score,
         decision_threshold=artifacts.decision_threshold,
         prediction=result.prediction,

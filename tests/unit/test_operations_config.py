@@ -52,6 +52,7 @@ def test_dockerfile_packages_real_bundle_and_runs_non_root() -> None:
         "preprocessor.joblib",
         "feature_manifest.json",
         "metadata.json",
+        "cat_tunning_model.pkl",
     ):
         assert f"models/production_v1/{filename}" in dockerfile
     assert "USER appuser" in dockerfile

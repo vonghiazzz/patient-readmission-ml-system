@@ -9,9 +9,9 @@ Audit date: 2026-08-11
 | Python | 3.11.15 |
 | `python -m pip check` | Passed; no broken requirements |
 | `ruff check .` | Passed |
-| `ruff format --check .` | Passed; 44 files already formatted |
-| `pytest -q` | 46 passed, 2 warnings |
-| Coverage | 64.22%, required floor 60% |
+| `ruff format --check .` | Passed; 46 files already formatted |
+| `pytest -q` | 53 passed, 2 warnings |
+| Coverage | 66.45%, required floor 60% |
 | `git diff --check` | Passed |
 | Docker build | Passed |
 | Standalone container smoke | Passed |
@@ -57,15 +57,16 @@ The runtime path is: strict Pydantic request contract -> canonical 42-column
 order -> three deterministic derived features -> frozen preprocessor -> 223
 transformed columns -> frozen XGBoost `predict_proba` -> metadata threshold.
 
-## Reproducibility blocker
+## Additional CatBoost endpoint
 
-`models/production_v1/` is present and verified locally but is currently
-untracked by Git. CI and a clean clone cannot build the production image until
-the team chooses and implements one reviewed policy:
+The separately supplied `cat_tunning_model.pkl` is tracked alongside the frozen bundle and served
+only by `POST /predict/catboost`. Its observed contract is 52 ordered features, seven categorical
+features, CatBoost threshold `0.5`, and SHA-256
+`4d5c1217e3f07d976d16b98d946639a742c26e4137066f7e6853b9c67cd05162`.
 
-- track the four frozen artifacts with Git LFS, or
-- download them from a durable, checksum-verified artifact store before test
-  and build.
+The CatBoost artifact does not replace the frozen XGBoost champion and has no approved semantic
+model version. Tests cover its real prediction path, positive/negative classification branches,
+unknown categorical value, invalid input, missing artifact, OpenAPI schema, and artifact hash.
 
-The CI workflow deliberately fails early when the bundle is absent. Raw data,
-interim data, local `.env`, and local MLflow state remain excluded from Git.
+All model files needed by the two endpoints are tracked in Git and checked by the CI preflight. Raw
+data, interim data, local `.env`, and local MLflow state remain excluded from Git.

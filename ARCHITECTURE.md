@@ -23,12 +23,19 @@ The response score is raw XGBoost `predict_proba`, not a post-hoc calibrated pro
 prediction uses the inclusive rule `risk_score >= decision_threshold`. `status` is only a readable
 copy of that binary outcome; the system defines no additional risk bands.
 
+The separate `POST /predict/catboost` path validates 52 already-engineered fields against the
+feature names embedded in `cat_tunning_model.pkl`, calls CatBoost `predict_proba`, and applies the
+artifact threshold `0.5`. It is experimental, unversioned, and never replaces the frozen XGBoost
+champion. CatBoost failure does not change XGBoost `/ready` state.
+
 ## Runtime components
 
 ```text
                          ┌──────────────┐
 client ────────────────► │ FastAPI API  │
                          │ /predict     │
+                         │ /predict/    │
+                         │   catboost   │
                          │ /ready       │
                          │ /metrics     │
                          └──────┬───────┘
@@ -56,6 +63,7 @@ metrics, four artifacts, SHAP reports, and fairness reports without fitting a mo
 | `preprocessor.joblib` | Frozen 45-to-223 transformation |
 | `feature_manifest.json` | Request, derived, model-input, and excluded fields |
 | `metadata.json` | Version, threshold, evaluation metrics, selection decision |
+| `cat_tunning_model.pkl` | Experimental CatBoost model with 52 embedded feature names |
 
 The artifact directory may be overridden with `PRODUCTION_ARTIFACT_DIR` for safe failure testing.
 There is no mock or fallback model. Missing or inconsistent artifacts produce `/ready` 503 and make
@@ -63,8 +71,8 @@ prediction unavailable.
 
 ## Monitoring and privacy
 
-Prometheus records bounded labels only: HTTP method, route template, status code, binary prediction,
-model version, and feature-set version. It does not label metrics with patient identifiers,
+Prometheus records bounded labels only: HTTP method, route template, status code, model identifier,
+binary prediction, model version, and feature-set version. It does not label metrics with patient identifiers,
 demographics, specialties, payer codes, or raw values. The API does not log request bodies.
 
 The provisioned dashboard shows request volume, p95 latency, error rate, score distribution,
