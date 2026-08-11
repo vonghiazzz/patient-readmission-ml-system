@@ -17,6 +17,7 @@ COPY --chown=appuser:appuser models/production_v1/model.joblib ./models/producti
 COPY --chown=appuser:appuser models/production_v1/preprocessor.joblib ./models/production_v1/preprocessor.joblib
 COPY --chown=appuser:appuser models/production_v1/feature_manifest.json ./models/production_v1/feature_manifest.json
 COPY --chown=appuser:appuser models/production_v1/metadata.json ./models/production_v1/metadata.json
+COPY --chown=appuser:appuser models/production_v1/cat_tunning_model.pkl ./models/production_v1/cat_tunning_model.pkl
 COPY --chown=appuser:appuser models/production_v1/reports ./models/production_v1/reports
 
 USER appuser

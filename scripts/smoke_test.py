@@ -39,8 +39,9 @@ def assert_json(status: int, body: str, expected_status: int) -> dict[str, Any]:
     return parsed
 
 
-def run(base_url: str, sample_path: Path) -> None:
+def run(base_url: str, sample_path: Path, catboost_sample_path: Path) -> None:
     payload = json.loads(sample_path.read_text(encoding="utf-8"))
+    catboost_payload = json.loads(catboost_sample_path.read_text(encoding="utf-8"))
 
     status, body = request(base_url, "/health")
     health = assert_json(status, body, 200)
@@ -58,6 +59,12 @@ def run(base_url: str, sample_path: Path) -> None:
         assert prediction["decision_threshold"] == 0.17
         assert prediction["prediction"] == int(prediction["risk_score"] >= 0.17)
 
+    status, body = request(base_url, "/predict/catboost", catboost_payload)
+    catboost_prediction = assert_json(status, body, 200)
+    assert catboost_prediction["model_type"] == "CatBoostClassifier"
+    assert catboost_prediction["decision_threshold"] == 0.5
+    assert catboost_prediction["prediction"] == int(catboost_prediction["risk_score"] >= 0.5)
+
     status, body = request(base_url, "/predict", {"patient_nbr": "not-accepted"})
     error = assert_json(status, body, 422)
     assert error["error"]["code"] == "validation_error"
@@ -69,7 +76,7 @@ def run(base_url: str, sample_path: Path) -> None:
     if "readmission_predictions_total" not in body:
         raise RuntimeError("Prediction metrics were not recorded")
 
-    print("API smoke passed: health, readiness, predict, alias, invalid request, metrics")
+    print("API smoke passed: health, readiness, XGBoost, CatBoost, alias, invalid request, metrics")
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,9 +87,14 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("docs/api/sample_request.json"),
     )
+    parser.add_argument(
+        "--catboost-sample",
+        type=Path,
+        default=Path("docs/api/sample_catboost_request.json"),
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     arguments = parse_args()
-    run(arguments.base_url, arguments.sample)
+    run(arguments.base_url, arguments.sample, arguments.catboost_sample)

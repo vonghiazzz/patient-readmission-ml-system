@@ -41,8 +41,5 @@ mlruns/
 models/*.pickle
 models/*.bin
 
-# Local experimental model; not part of the frozen XGBoost V1 contract
-models/production_v1/cat_tunning_model.pkl
-
 # Logs
 *.log

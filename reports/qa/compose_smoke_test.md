@@ -5,10 +5,8 @@ Environment: macOS host, OrbStack Docker 27.4.1, Python 3.11.15
 
 ## Result
 
-The checked-out working tree passed the complete Compose integration test. This
-is not evidence of a clean-clone run because `models/production_v1/` is currently
-untracked; an artifact distribution policy must be completed before another
-machine or CI runner can reproduce the build.
+The checked-out working tree passed the complete Compose integration test. All required endpoint
+artifacts are now tracked in Git and checked by CI before Docker build.
 
 | Check | Observed result |
 |---|---|
@@ -65,11 +63,23 @@ Final healthy service snapshot:
 - API image ID: `sha256:df95002c207c9f5628f5f25187d0af1ad8b9867d1188c0cd7208f4b321e761f4`
 - Runtime user: `appuser` (UID 10001 in the container)
 - Healthcheck targets `/ready`.
-- The image contains only the four production contract artifacts plus approved
-  reports; raw/interim datasets and the unrelated CatBoost file are excluded.
-- Current image size is approximately 1.87 GB. This is functional but remains
+- The image contains the four frozen XGBoost contract artifacts, the separately supplied CatBoost
+  artifact, and approved reports. Raw/interim datasets are excluded.
+- Current image size is approximately 2.23 GB. This is functional but remains
   an optimization opportunity because the shared requirements contain heavy
   evaluation packages.
+
+## CatBoost endpoint extension
+
+After the baseline Compose audit, the requested experimental CatBoost endpoint was added and
+verified independently without modifying the four frozen XGBoost artifacts:
+
+- Image ID: `sha256:009db36e8444d3c895e35b11980e86c2a943ea84290674655f8f4b3fba89d5b3`.
+- `catboost==1.2.10` installed successfully in the Python 3.11.15 image.
+- `cat_tunning_model.pkl` was copied into the image.
+- Container healthcheck reached `healthy`.
+- Host smoke test passed XGBoost, CatBoost, compatibility alias, invalid request, and metrics.
+- `/predict/catboost` returned the artifact SHA-256 and threshold `0.5`.
 
 ## Failure-path evidence
 

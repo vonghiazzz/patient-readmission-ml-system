@@ -26,12 +26,13 @@ HTTP_LATENCY = Histogram(
 )
 PREDICTIONS = Counter(
     "readmission_predictions_total",
-    "Successful frozen-champion predictions.",
-    ("prediction",),
+    "Successful predictions by bounded model identifier.",
+    ("model", "prediction"),
 )
 PREDICTION_RISK_SCORE = Histogram(
     "readmission_prediction_risk_score",
-    "Distribution of raw XGBoost predict_proba scores.",
+    "Distribution of model predict_proba scores.",
+    ("model",),
     buckets=(0.02, 0.05, 0.1, 0.17, 0.25, 0.4, 0.6, 0.8, 1.0),
 )
 MODEL_READY = Gauge(
@@ -64,9 +65,9 @@ def set_model_readiness(
     configure_model_info(ready, model_version, feature_set)
 
 
-def record_prediction(risk_score: float, prediction: int) -> None:
-    PREDICTIONS.labels(prediction=str(prediction)).inc()
-    PREDICTION_RISK_SCORE.observe(risk_score)
+def record_prediction(risk_score: float, prediction: int, model: str) -> None:
+    PREDICTIONS.labels(model=model, prediction=str(prediction)).inc()
+    PREDICTION_RISK_SCORE.labels(model=model).observe(risk_score)
 
 
 def _route_label(request: Request) -> str:

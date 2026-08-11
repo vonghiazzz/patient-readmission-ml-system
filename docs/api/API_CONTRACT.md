@@ -42,6 +42,32 @@ preprocessor → 223 transformed features → frozen XGBoost raw probability →
 `prediction` uses an inclusive comparison: `risk_score >= decision_threshold`. The status is
 `high_risk` for 1 and `not_high_risk` for 0. No undocumented risk bands are produced.
 
+## Experimental CatBoost prediction
+
+`POST /predict/catboost` serves `cat_tunning_model.pkl` independently of the XGBoost champion. It
+accepts exactly 52 required already-engineered fields in the order embedded in the artifact. Seven
+fields are categorical strings: `race`, `admission_type_id`, `discharge_disposition_id`,
+`admission_source_id`, `max_glu_serum`, `A1Cresult`, and `level1_diag1`. The remaining fields are
+non-negative numeric values. Extra or missing fields return 422.
+
+The endpoint uses CatBoost `predict_proba` and the artifact's threshold `0.5`. The artifact has no
+approved semantic version, so the response uses `model_type` and the exact artifact SHA-256 instead
+of claiming XGBoost model version `1.0.0`:
+
+```json
+{
+  "model_type": "CatBoostClassifier",
+  "artifact_sha256": "4d5c1217e3f07d976d16b98d946639a742c26e4137066f7e6853b9c67cd05162",
+  "risk_score": 0.31,
+  "decision_threshold": 0.5,
+  "prediction": 0,
+  "status": "not_high_risk"
+}
+```
+
+The request example is `docs/api/sample_catboost_request.json`. This endpoint is experimental and
+does not replace or modify the frozen XGBoost contract.
+
 ## Error contract
 
 Errors never echo submitted values:

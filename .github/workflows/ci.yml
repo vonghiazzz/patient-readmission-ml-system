@@ -19,6 +19,7 @@ jobs:
           test -s models/production_v1/preprocessor.joblib
           test -s models/production_v1/feature_manifest.json
           test -s models/production_v1/metadata.json
+          test -s models/production_v1/cat_tunning_model.pkl
 
       - uses: actions/setup-python@v5
         with:
