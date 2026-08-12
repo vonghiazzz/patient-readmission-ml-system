@@ -1,0 +1,48 @@
+{
+  "model_version": "huy-catboost-1.0.0",
+  "model_sha256": "a0d11b7ed0c1956d10afbfda360ec24ae2c55f6d6d50d32ed50780a81160331b",
+  "model_name": "Huy Final CatBoost",
+  "model_type": "CatBoostClassifier",
+  "feature_set": "HUY_FINAL_52",
+  "source_notebook": "notebooks/reference/Huy-prediction-on-hospital-readmission.ipynb",
+  "decision_threshold": 0.8564852152742759,
+  "artifact_probability_threshold": 0.5,
+  "probability_output": "raw_predict_proba",
+  "posthoc_calibration": "none",
+  "training": {
+    "split": "stratified 80/20, random_state=42",
+    "cv": "6-fold StratifiedKFold, shuffle=True, random_state=42",
+    "resampling": "SMOTENC on training split, sampling_strategy=0.7, random_state=42",
+    "class_weights": {"0": 1, "1": 10},
+    "cohort_rows": 56653,
+    "train_rows_before_resampling": 45322,
+    "train_rows_after_resampling": 70543,
+    "test_rows": 11331
+  },
+  "hyperparameters": {
+    "iterations": 500,
+    "depth": 4,
+    "learning_rate": 0.018489688756468402,
+    "l2_leaf_reg": 0.0032362988111549118,
+    "random_strength": 0.48580347723806133,
+    "bagging_temperature": 0.8738560829870741,
+    "random_seed": 42
+  },
+  "final_test_metrics": {
+    "precision": 0.15857605177993528,
+    "recall": 0.051255230125523014,
+    "f1": 0.0774703557312253,
+    "roc_auc": 0.566791349498412,
+    "pr_auc": 0.10810189054977758,
+    "brier_score": 0.38559831881602613,
+    "tn": 10115,
+    "fp": 260,
+    "fn": 907,
+    "tp": 49
+  },
+  "limitations": [
+    "Preprocessing statistics reproduce the notebook and were fitted before the train/test split.",
+    "SMOTENC was applied once before final cross-validation rather than inside each fold.",
+    "The probability is not post-hoc calibrated."
+  ]
+}

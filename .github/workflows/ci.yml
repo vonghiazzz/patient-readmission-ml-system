@@ -13,13 +13,13 @@ jobs:
         with:
           lfs: true
 
-      - name: Verify frozen production bundle is available
+      - name: Verify Huy production bundle is available
         run: |
-          test -s models/production_v1/model.joblib
-          test -s models/production_v1/preprocessor.joblib
-          test -s models/production_v1/feature_manifest.json
-          test -s models/production_v1/metadata.json
-          test -s models/production_v1/cat_tunning_model.pkl
+          test -s models/production_huy/model.pkl
+          test -s models/production_huy/preprocessing_state.json
+          test -s models/production_huy/feature_manifest.json
+          test -s models/production_huy/metadata.json
+          test -s models/production_huy/reference_predictions.json
 
       - uses: actions/setup-python@v5
         with:

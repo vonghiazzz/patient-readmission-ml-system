@@ -5,18 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Environment-driven settings shared by the API service."""
-
     app_name: str = "Patient Readmission API"
-    app_version: str = "1.0.0"
+    app_version: str = "2.0.0"
     environment: str = "development"
-
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-
-    production_artifact_dir: Path = Path("models/production_v1")
-    catboost_model_path: Path = Path("models/production_v1/cat_tunning_model.pkl")
-
+    production_artifact_dir: Path = Path("models/production_huy")
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(
@@ -29,6 +23,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return one cached Settings instance per process."""
-
     return Settings()

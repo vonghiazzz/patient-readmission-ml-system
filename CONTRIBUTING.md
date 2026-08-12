@@ -4,10 +4,10 @@
 
 | Member | Role            | Responsibilities                                                      |
 | ------ | --------------- | --------------------------------------------------------------------- |
-| Huy    | Data Lead       | Ingestion, validation, preprocessing, feature engineering, data tests |
-| Khanh  | ML Lead         | Baselines, XGBoost, Optuna, MLflow, calibration, SHAP                 |
-| Nghia  | Backend Lead    | FastAPI, schemas, Dockerfile, integration tests                       |
-| Binh   | MLOps/Docs Lead | Docker Compose, Prometheus/Grafana, CI/CD, docs, slides               |
+| Huy    | ML/Data Lead    | Authoritative notebook, CatBoost artifact, cohort and feature story   |
+| Khanh  | Evaluation      | Holdout metrics, calibration, MLflow and SHAP                         |
+| Nghia  | Backend Lead    | Raw-input preprocessing, FastAPI contract and integration tests      |
+| Binh   | MLOps/Docs Lead | Docker Compose, Prometheus/Grafana, CI/CD, docs and slides            |
 
 ## Branching
 

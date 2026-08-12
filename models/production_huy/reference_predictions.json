@@ -1,0 +1,16 @@
+{
+  "model_sha256": "a0d11b7ed0c1956d10afbfda360ec24ae2c55f6d6d50d32ed50780a81160331b",
+  "decision_threshold": 0.8564852152742759,
+  "cases": [
+    {
+      "request": "docs/api/sample_request.json",
+      "risk_score": 0.6643320154788986,
+      "prediction": 0
+    },
+    {
+      "request": "docs/api/sample_high_risk_request.json",
+      "risk_score": 0.9379868301418867,
+      "prediction": 1
+    }
+  ]
+}
