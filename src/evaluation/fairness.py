@@ -1,4 +1,4 @@
-"""Descriptive subgroup audit for the frozen model and frozen threshold."""
+"""Descriptive subgroup audit for Huy's model and notebook threshold."""
 
 from __future__ import annotations
 
@@ -90,9 +90,8 @@ def run_fairness_audit(
     if target_column not in evaluation:
         raise ValueError(f"Fairness input is missing target column: {target_column}")
 
-    model_input = align_source_features(evaluation, artifacts.feature_manifest)
-    transformed = artifacts.preprocessor.transform(model_input)
-    scores = np.asarray(artifacts.model.predict_proba(transformed), dtype=float)[:, 1]
+    model_input = align_source_features(evaluation, artifacts.preprocessing_state)
+    scores = np.asarray(artifacts.model.predict_proba(model_input), dtype=float)[:, 1]
     predictions = (scores >= artifacts.decision_threshold).astype(int)
     y_true = evaluation[target_column].astype(int).to_numpy()
 
@@ -116,8 +115,8 @@ def run_fairness_audit(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
-    parser.add_argument("--artifact-dir", type=Path, default=Path("models/production_v1"))
-    parser.add_argument("--output-dir", type=Path, default=Path("models/production_v1/reports"))
+    parser.add_argument("--artifact-dir", type=Path, default=Path("models/production_huy"))
+    parser.add_argument("--output-dir", type=Path, default=Path("models/production_huy/reports"))
     parser.add_argument("--target-column", default="readmitted_30d")
     return parser.parse_args()
 

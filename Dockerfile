@@ -13,12 +13,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 RUN useradd --create-home --uid 10001 appuser
 
 COPY --chown=appuser:appuser src ./src
-COPY --chown=appuser:appuser models/production_v1/model.joblib ./models/production_v1/model.joblib
-COPY --chown=appuser:appuser models/production_v1/preprocessor.joblib ./models/production_v1/preprocessor.joblib
-COPY --chown=appuser:appuser models/production_v1/feature_manifest.json ./models/production_v1/feature_manifest.json
-COPY --chown=appuser:appuser models/production_v1/metadata.json ./models/production_v1/metadata.json
-COPY --chown=appuser:appuser models/production_v1/cat_tunning_model.pkl ./models/production_v1/cat_tunning_model.pkl
-COPY --chown=appuser:appuser models/production_v1/reports ./models/production_v1/reports
+COPY --chown=appuser:appuser models/production_huy ./models/production_huy
 
 USER appuser
 

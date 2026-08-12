@@ -45,16 +45,10 @@ def test_grafana_datasource_and_required_dashboard_panels_are_provisioned() -> N
     }.issubset(panel_titles)
 
 
-def test_dockerfile_packages_real_bundle_and_runs_non_root() -> None:
+def test_dockerfile_packages_huy_bundle_and_runs_non_root() -> None:
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
-    for filename in (
-        "model.joblib",
-        "preprocessor.joblib",
-        "feature_manifest.json",
-        "metadata.json",
-        "cat_tunning_model.pkl",
-    ):
-        assert f"models/production_v1/{filename}" in dockerfile
+    assert "models/production_huy" in dockerfile
+    assert "models/production_v1" not in dockerfile
     assert "USER appuser" in dockerfile
     assert "models/unavailable" not in dockerfile
     assert "src.models.train" not in dockerfile

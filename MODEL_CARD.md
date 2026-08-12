@@ -1,97 +1,48 @@
-# Model Card: XGBoost V1 Optuna 1.0.0
+# Model Card: Huy Final CatBoost
 
-## Overview
+## Identity
 
-This model estimates relative risk of hospital readmission within 30 days. The binary target is
-`readmitted_30d`, derived from the source readmission outcome. It is a production-like research
-prototype, not a certified clinical decision system.
+- Model: `CatBoostClassifier`
+- Version: `huy-catboost-1.0.0`
+- Model SHA-256: `a0d11b7ed0c1956d10afbfda360ec24ae2c55f6d6d50d32ed50780a81160331b`
+- Positive class: readmission within 30 days (`readmitted == "<30"`).
+- Operating threshold: `0.8564852152742759`.
+- Output: raw, uncalibrated `predict_proba`.
 
-- Model: XGBoost V1 Optuna
-- Version: 1.0.0
-- Feature set: V1
-- Best iteration: 493
-- Probability: raw `predict_proba`; no post-hoc calibration
-- Operating threshold: 0.17, selected on validation data and read at runtime from
-  `models/production_v1/metadata.json`
+## Cohort and training
+
+The raw 101,766 encounters are filtered for missing diagnoses/race, invalid gender and discharge
+disposition 11. The first encounter per patient is retained and two notebook outlier filters leave
+56,653 rows. The final split is stratified 80/20 with `random_state=42`.
+
+The final model uses SMOTENC on the training split with `sampling_strategy=0.7`, followed by CatBoost
+with 500 trees, depth 4, learning rate 0.018489688756468402 and class weights `{0:1,1:10}`.
+
+## Holdout metrics
+
+| Metric | Value |
+| --- | ---: |
+| PR-AUC | 0.10810189054977758 |
+| ROC-AUC | 0.566791349498412 |
+| Precision | 0.15857605177993528 |
+| Recall | 0.051255230125523014 |
+| F1 | 0.0774703557312253 |
+| Brier | 0.38559831881602613 |
+
+At the operating threshold: TN 10,115; FP 260; FN 907; TP 49.
 
 ## Intended use
 
-Intended users are analysts and appropriately governed clinical operations teams. Appropriate uses
-are risk prioritization, analytical decision support, and identifying cases for additional human
-review. The score must be considered with clinical context and human judgment.
+Course demonstration and governed exploration of readmission prioritization. It is not suitable for
+diagnosis, treatment selection, denial of care, autonomous intervention or unsupervised deployment.
 
-The model is not intended for diagnosis, autonomous clinical or treatment decisions, denial of
-care, automatic discharge decisions, or replacement of clinicians.
+## Limitations
 
-## Data and evaluation
+- Final recall is 5.13%, so most positives in the holdout are missed.
+- The raw probability is not calibrated and must not be interpreted as clinical certainty.
+- Notebook preprocessing statistics were fit before the split, creating evaluation leakage.
+- SMOTENC was performed before final CV rather than inside each fold.
+- Thresholds and subgroup results are dataset-specific.
+- Medication direction is collapsed: `Steady`, `Up` and `Down` all become medication-used = 1.
 
-The project uses the UCI diabetes hospital encounter dataset. The positive class prevalence is
-approximately 11%. Repository data preparation uses patient-aware splitting so a patient does not
-cross its train/test boundary. The frozen model-selection workflow also used a fixed validation set
-for repeated tuning and comparison; this may make validation performance optimistic. There has
-been no external-hospital validation.
-
-| Evaluation | PR-AUC | ROC-AUC | Brier |
-| --- | ---: | ---: | ---: |
-| Validation | 0.209404 | 0.647695 | 0.098366 |
-| Final holdout | 0.188837 | 0.631469 | 0.099806 |
-
-At threshold 0.17, final holdout precision is 0.182828, recall 0.387746, F1 0.248490, and
-specificity 0.775515. The threshold is validation-derived, not a universal clinical cutoff.
-
-## Features and leakage controls
-
-The API accepts exactly 42 source features. It adds only three deterministic history indicators,
-creating 45 ordered V1 inputs; the frozen preprocessor expands these to 223 transformed features.
-`admission_type_id` and `admission_source_id` are integer-valued but processed categorically.
-
-Identifiers and leakage-risk fields excluded from prediction include `encounter_id`, `patient_nbr`,
-`readmitted`, `readmitted_30d`, `weight`, `discharge_disposition_id`, `diag_1`, `diag_2`, and
-`diag_3`. Patient identifiers may be used for split/audit grouping only.
-
-## Model selection
-
-The frozen champion is the tuned V1 XGBoost. A soft-voting candidate had validation PR-AUC
-0.210101, only +0.000521 mean paired patient-cluster bootstrap delta versus XGBoost, with 95% CI
-[-0.001880, 0.002827]. The improvement was not robust enough to justify additional serving
-complexity, so the ensemble was rejected. Model selection is closed and productionization does not
-retrain or retune the champion.
-
-## Explainability
-
-Global SHAP outputs are stored under `models/production_v1/reports/`. One-hot contributions are
-first summed per original feature for each patient; global importance is then the mean absolute
-grouped contribution. This avoids inflating high-cardinality features. SHAP describes model behavior
-and associations, not causes.
-
-## Subgroup audit
-
-The descriptive audit covers race, gender, and age using the frozen threshold. Female and male
-recall were approximately 0.3932 and 0.3812, with FPR approximately 0.2241 and 0.2249. No large
-gender difference was observed in this holdout at this threshold, but that does not prove fairness.
-Race and age results vary more: for example, African American and Caucasian recall were about
-0.4127 and 0.3818, while missing-race recall was about 0.1915. Small groups are flagged when
-`n < 200` or positive cases `< 30`; their estimates are unstable.
-
-## Limitations and risks
-
-- Discrimination is moderate (holdout ROC-AUC about 0.6315; PR-AUC about 0.1888).
-- Raw XGBoost probabilities are not post-hoc calibrated.
-- Dataset age, coding conventions, missingness, and local workflows may not represent current or
-  external hospitals.
-- Repeated validation use, class imbalance, distribution shift, and subgroup sample size limit
-  generalization.
-- Race, gender, and age are predictors and require governance review before any real clinical use.
-- Predictions and SHAP values are associations and must not be interpreted as causal or diagnostic.
-- The joblib booster records XGBoost 3.3.0, while the Python 3.11 service must use the newest
-  compatible runtime, XGBoost 3.2.0. Loading emits a cross-version pickle warning. Reproducibility
-  is regression-tested, but native XGBoost format would be more portable in a future governed model
-  version; the frozen 1.0.0 artifact is not regenerated during productionization.
-
-## Privacy and monitoring
-
-Never log or return patient/encounter identifiers, commit patient-level raw data, or place PHI/PII in
-monitoring labels. Monitor input schema, missing/unknown-category rates, score and selection-rate
-drift, delayed performance (PR-AUC, recall, precision, specificity, Brier), subgroup metrics with
-sample sizes, latency, and artifact/model version. Revalidation and governance approval are required
-before deployment to a new site or material workflow change.
+Huy-specific SHAP, calibration and subgroup files are under `models/production_huy/reports/`.

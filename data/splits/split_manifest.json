@@ -1,23 +1,28 @@
 {
-  "strategy": "patient_aware_group_shuffle_split",
+  "strategy": "huy_first_encounter_stratified_split",
   "random_state": 42,
   "ratios": {
-    "train": 0.7,
-    "test": 0.3
+    "train": 0.8,
+    "test": 0.2
   },
   "target": "readmitted_30d",
+  "cohort_row_count": 56653,
   "splits": {
     "train": {
-      "row_count": 71520,
-      "patient_count": 50062,
-      "positive_rate": 0.11215044742729306,
-      "patient_id_hash": "49a99b20a356c7e987c1d389887864cfac2f895e676c0bb57125ceddfb7f9d83"
+      "row_count": 45322,
+      "patient_count": 45322,
+      "negative_count": 41496,
+      "positive_count": 3826,
+      "positive_rate": 0.08441816336437051,
+      "patient_id_hash": "1e292be3816def44f4d03ebe3d1e925c8903bfd3ce862b163c8ee61b78e4e522"
     },
     "test": {
-      "row_count": 30246,
-      "patient_count": 21456,
-      "positive_rate": 0.1102955762745487,
-      "patient_id_hash": "e3a40c9e972ba07f69b62078f3924fa0ad5f884e7cd4d4b30d0fd10bf0b2eb18"
+      "row_count": 11331,
+      "patient_count": 11331,
+      "negative_count": 10375,
+      "positive_count": 956,
+      "positive_rate": 0.08437031153472774,
+      "patient_id_hash": "550a7fe5542056cca1bc61b801ef315d2091055d61c55cd26b43509a80f4bfd5"
     }
   }
 }
