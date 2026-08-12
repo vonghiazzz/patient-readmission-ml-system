@@ -3,51 +3,69 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.data.splitting import (
-    assert_no_patient_overlap,
-    create_patient_aware_splits,
-    run_splitting,
-)
+from src.data.splitting import create_huy_cohort, create_huy_splits
 
 
-def test_patient_does_not_cross_splits() -> None:
-    dataframe = pd.DataFrame(
+def state() -> dict:
+    return json.loads(
+        Path("models/production_huy/preprocessing_state.json").read_text(encoding="utf-8")
+    )
+
+
+def base_record() -> dict:
+    value = json.loads(Path("docs/api/sample_request.json").read_text(encoding="utf-8"))
+    value.update(
         {
-            "patient_nbr": list(range(1, 41)),
-            "encounter_id": list(range(101, 141)),
-            "readmitted": ["<30", ">30", "NO", "NO"] * 10,
+            "time_in_hospital": 4,
+            "num_lab_procedures": 43,
+            "num_procedures": 1,
+            "num_medications": 16,
+            "number_outpatient": 0,
+            "number_emergency": 0,
+            "number_inpatient": 0,
+            "number_diagnoses": 7,
+            "max_glu_serum": "None",
+            "A1Cresult": "None",
+            "diag_2": "401",
+            "diag_3": "250",
         }
     )
-
-    train, test = create_patient_aware_splits(
-        dataframe,
-        random_state=42,
-    )
-
-    assert_no_patient_overlap(train, test)
-    assert len(train) + len(test) == len(dataframe)
+    return value
 
 
-def test_run_splitting_writes_only_train_and_test(tmp_path: Path) -> None:
-    dataframe = pd.DataFrame(
+def fixture_frame() -> pd.DataFrame:
+    rows = []
+    for index in range(20):
+        row = {
+            **base_record(),
+            "encounter_id": 1000 + index,
+            "patient_nbr": 2000 + index,
+            "readmitted": "<30" if index % 2 else "NO",
+        }
+        rows.append(row)
+    rows.append(
         {
-            "patient_nbr": list(range(1, 41)),
-            "encounter_id": list(range(101, 141)),
-            "readmitted": ["<30", ">30", "NO", "NO"] * 10,
+            **base_record(),
+            "encounter_id": 9999,
+            "patient_nbr": 2000,
+            "readmitted": "<30",
         }
     )
-    input_path = tmp_path / "input.csv"
-    output_directory = tmp_path / "splits"
-    manifest_path = tmp_path / "split_manifest.json"
+    return pd.DataFrame(rows)
 
-    dataframe.to_csv(input_path, index=False)
-    output_directory.mkdir()
-    (output_directory / "validation.csv").write_text("legacy", encoding="utf-8")
 
-    run_splitting(input_path, output_directory, manifest_path)
+def test_huy_cohort_keeps_first_encounter_and_maps_target() -> None:
+    cohort = create_huy_cohort(fixture_frame(), state())
+    assert len(cohort) == 20
+    assert cohort["patient_nbr"].is_unique
+    assert cohort.loc[cohort["patient_nbr"].eq(2000), "encounter_id"].item() == 1000
+    assert set(cohort["readmitted_30d"]) == {0, 1}
 
-    assert sorted(path.name for path in output_directory.iterdir()) == ["test.csv", "train.csv"]
 
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["ratios"] == {"train": 0.70, "test": 0.30}
-    assert set(manifest["splits"]) == {"train", "test"}
+def test_huy_split_is_stratified_80_20_without_patient_overlap() -> None:
+    cohort = create_huy_cohort(fixture_frame(), state())
+    train, test = create_huy_splits(cohort)
+    assert len(train) == 16
+    assert len(test) == 4
+    assert set(train["patient_nbr"]).isdisjoint(test["patient_nbr"])
+    assert train["readmitted_30d"].mean() == test["readmitted_30d"].mean() == 0.5

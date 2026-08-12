@@ -1,0 +1,79 @@
+{
+  "preprocessing_version": "huy-notebook-1.0.0",
+  "standard_1": {
+    "features": [
+      "num_lab_procedures",
+      "number_inpatient_log1p",
+      "service_utilization_log1p",
+      "number_emergency_log1p",
+      "num_medications",
+      "numchange",
+      "number_diagnoses",
+      "number_outpatient_log1p"
+    ],
+    "mean": {
+      "num_lab_procedures": 42.96574430304824,
+      "number_inpatient_log1p": 0.10552929613506282,
+      "service_utilization_log1p": 0.2760744447153346,
+      "number_emergency_log1p": 0.06219370672538934,
+      "num_medications": 15.768955312222552,
+      "numchange": 0.2624001183782184,
+      "number_diagnoses": 7.332746374667061,
+      "number_outpatient_log1p": 0.13700485392431827
+    },
+    "scale": {
+      "num_lab_procedures": 19.952899443018634,
+      "number_inpatient_log1p": 0.30165442332601067,
+      "service_utilization_log1p": 0.5095672150297067,
+      "number_emergency_log1p": 0.2321341188306023,
+      "num_medications": 8.260654977701531,
+      "numchange": 0.47665008636916895,
+      "number_diagnoses": 1.890837599727143,
+      "number_outpatient_log1p": 0.3840871283102416
+    }
+  },
+  "minmax_1": {
+    "features": ["num_procedures", "time_in_hospital"],
+    "min": {"num_procedures": 0.0, "time_in_hospital": 1.0},
+    "max": {"num_procedures": 6.0, "time_in_hospital": 14.0}
+  },
+  "standard_2": {
+    "features": [
+      "num_medications|time_in_hospital_log",
+      "num_medications|num_procedures_log1p",
+      "time_in_hospital|num_lab_procedures",
+      "num_medications|num_lab_procedures",
+      "num_medications|number_diagnoses",
+      "age|number_diagnoses",
+      "change|num_medications",
+      "number_diagnoses|time_in_hospital",
+      "num_medications|numchange_log1p",
+      "nummed"
+    ],
+    "mean": {
+      "num_medications|time_in_hospital_log": 3.7892377702533366,
+      "num_medications|num_procedures_log1p": 1.9591968186839135,
+      "time_in_hospital|num_lab_procedures": 195.94641285028487,
+      "num_medications|num_lab_procedures": 672.5285792594807,
+      "num_medications|number_diagnoses": 113.26536104051428,
+      "age|number_diagnoses": 485.7053869537051,
+      "change|num_medications": 7.376322652447634,
+      "number_diagnoses|time_in_hospital": 31.78410657630272,
+      "num_medications|numchange_log1p": 0.6451286290418775,
+      "nummed": 1.154117041245162
+    },
+    "scale": {
+      "num_medications|time_in_hospital_log": 1.056194175077751,
+      "num_medications|num_procedures_log1p": 1.8463292264487712,
+      "time_in_hospital|num_lab_procedures": 190.51446293522216,
+      "num_medications|num_lab_procedures": 513.0366607014134,
+      "num_medications|number_diagnoses": 66.43489359827004,
+      "age|number_diagnoses": 182.29167969626897,
+      "change|num_medications": 9.703846589491961,
+      "number_diagnoses|time_in_hospital": 25.12142999444038,
+      "num_medications|numchange_log1p": 1.2081114644408415,
+      "nummed": 0.9311982328466835
+    }
+  },
+  "age_minmax": {"min": 5.0, "max": 95.0}
+}

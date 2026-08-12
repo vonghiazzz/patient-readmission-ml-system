@@ -1,251 +1,111 @@
-# Patient Readmission ML System
+# Patient Readmission ML System — Huy Final CatBoost
 
-Production-like course project serving the frozen XGBoost V1 champion and a separately supplied
-experimental CatBoost model for relative 30-day hospital readmission risk. The system is decision
-support for prioritization and human review—not diagnosis, treatment advice, or an autonomous
-clinical system.
+Hệ thống dự đoán nguy cơ tái nhập viện trong 30 ngày, sử dụng duy nhất mô hình CatBoost cuối cùng
+trong notebook của Huy. Hệ thống phục vụ mục đích học tập và hỗ trợ ưu tiên theo dõi; không thay
+thế quyết định lâm sàng.
 
-## Final frozen contract
+## Production contract
 
 | Item | Value |
 | --- | --- |
-| Champion | XGBoost V1 Optuna |
-| Model version | `1.0.0` |
-| Best iteration | `493` |
-| Decision threshold | `0.17`, loaded from metadata |
-| Probability output | Raw `predict_proba`; no post-hoc calibration |
-| Input flow | 42 request → 3 derived → 45 model inputs → 223 transformed |
+| Champion | Huy Final CatBoost |
+| Model version | `huy-catboost-1.0.0` |
+| Feature set | `HUY_FINAL_52` |
+| Request | 40 raw encounter fields |
+| Model input | 52 Huy-engineered features |
+| Threshold | `0.8564852152742759` |
+| Probability | Raw CatBoost `predict_proba`; not calibrated |
+| Source notebook | `notebooks/reference/Huy-prediction-on-hospital-readmission.ipynb` |
 
-The authoritative files are under `models/production_v1/`: `model.joblib`,
-`preprocessor.joblib`, `feature_manifest.json`, and `metadata.json`. Serving never trains, tunes,
-resamples, calibrates, or changes the threshold.
+Target:
 
-`cat_tunning_model.pkl` is an additional unversioned CatBoost artifact. It is served only by
-`POST /predict/catboost`, does not replace the champion, and is not part of the frozen XGBoost
-42 → 3 → 45 → 223 contract.
+```text
+readmitted == "<30" → 1
+readmitted in {">30", "NO"} → 0
+```
 
-## Components
+The authoritative production bundle is `models/production_huy/`:
 
-- FastAPI: health, readiness, inference, OpenAPI, and privacy-safe Prometheus metrics.
-- Prometheus: API scrape and alert-rule evaluation.
-- Grafana: automatically provisioned datasource and dashboard.
-- MLflow: persistent tracking for the already-frozen champion; not in the online prediction path.
-- GitHub Actions: dependency check, Ruff, tests/coverage, and Docker build.
-- Responsible AI: grouped global SHAP, subgroup audit, model card, and limitations.
+- `model.pkl`: fitted final CatBoost with `class_weights={0:1,1:10}`.
+- `preprocessing_state.json`: frozen notebook scaler/min-max state.
+- `feature_manifest.json`: 40-field raw and 52-field model contracts.
+- `metadata.json`: version, threshold, training protocol, metrics and limitations.
+- `reference_predictions.json`: reproducible prediction-0 and prediction-1 cases.
+- `reports/`: Huy-specific holdout, calibration, SHAP and subgroup reports.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md), [MODEL_CARD.md](MODEL_CARD.md),
-[RESPONSIBLE_AI.md](RESPONSIBLE_AI.md), and [docs/api/API_CONTRACT.md](docs/api/API_CONTRACT.md).
-
-## Local setup
-
-Requirements: Python 3.11.15 and native OpenMP support required by XGBoost on the host OS.
+## Run locally
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
 python -m pip install -r requirements.txt
-python -m pip check
+python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Copy local configuration only when needed. `.env` is ignored by Git.
+Open `http://127.0.0.1:8000/docs` or call:
 
 ```bash
-cp .env.example .env
+curl --fail-with-body -X POST http://127.0.0.1:8000/predict \
+  -H 'Content-Type: application/json' \
+  --data @docs/api/sample_request.json
 ```
 
-## Quality checks
+Prediction 1 example:
+
+```bash
+curl --fail-with-body -X POST http://127.0.0.1:8000/predict \
+  -H 'Content-Type: application/json' \
+  --data @docs/api/sample_high_risk_request.json
+```
+
+Response:
+
+```json
+{
+  "model_version": "huy-catboost-1.0.0",
+  "risk_score": 0.9379868301418867,
+  "decision_threshold": 0.8564852152742759,
+  "prediction": 1,
+  "status": "high_risk"
+}
+```
+
+Object key order in JSON does not affect inference. Field names, types and values must satisfy the
+schema. The backend performs medication encoding, diagnosis grouping, log transforms, interactions
+and scaling; clients must not submit the 52 engineered features.
+
+## Verification
 
 ```bash
 python -m ruff check .
 python -m ruff format --check .
 python -m pytest -q
-python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=60 -q
+python scripts/smoke_test.py
 ```
 
-The legacy third-party reference notebook is excluded from Ruff. It is retained only as historical
-reference and is not executable production code.
-
-## Run FastAPI locally
+## Docker Compose
 
 ```bash
-python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
-```
-
-Useful URLs:
-
-- Health: <http://localhost:8000/health>
-- Readiness: <http://localhost:8000/ready>
-- Swagger: <http://localhost:8000/docs>
-- ReDoc: <http://localhost:8000/redoc>
-- OpenAPI: <http://localhost:8000/openapi.json>
-- Metrics: <http://localhost:8000/metrics>
-
-Submit the repository's synthetic request:
-
-```bash
-curl --fail-with-body -X POST http://localhost:8000/predict \
-  -H 'Content-Type: application/json' \
-  --data @docs/api/sample_request.json
-```
-
-The compatibility alias `POST /api/v1/predict` is retained but hidden from Swagger. A successful
-response contains `model_version`, `risk_score`, `decision_threshold`, `prediction`, and `status`.
-`prediction` is 1 exactly when `risk_score >= 0.17`. The score is not proof of severity, diagnosis,
-or guaranteed readmission.
-
-Submit the separate 52-feature CatBoost example:
-
-```bash
-curl --fail-with-body -X POST http://localhost:8000/predict/catboost \
-  -H 'Content-Type: application/json' \
-  --data @docs/api/sample_catboost_request.json
-```
-
-CatBoost uses the feature order and categorical indices embedded in `cat_tunning_model.pkl`, and
-its artifact threshold is `0.5`. The response identifies the model type and artifact SHA-256 so it
-cannot be confused with XGBoost model version `1.0.0`.
-
-Invalid request example:
-
-```bash
-curl -i -X POST http://localhost:8000/predict \
-  -H 'Content-Type: application/json' \
-  --data '{"patient_nbr":"must-not-be-accepted"}'
-```
-
-It returns HTTP 422 without echoing the submitted value.
-
-## Docker image
-
-The production image runs as a non-root user and contains the real frozen XGBoost bundle, the
-experimental CatBoost artifact, and approved reports.
-
-```bash
-docker build -t patient-readmission-api:1.0.0 .
-docker run --rm -p 8000:8000 --name readmission-api patient-readmission-api:1.0.0
-```
-
-In another terminal:
-
-```bash
-curl --fail http://localhost:8000/health
-curl --fail http://localhost:8000/ready
-curl --fail-with-body -X POST http://localhost:8000/predict \
-  -H 'Content-Type: application/json' \
-  --data @docs/api/sample_request.json
-curl --fail-with-body -X POST http://localhost:8000/predict/catboost \
-  -H 'Content-Type: application/json' \
-  --data @docs/api/sample_catboost_request.json
-curl --fail http://localhost:8000/metrics
-```
-
-## Docker Compose stack
-
-```bash
-docker compose config
-docker compose up --build -d
+docker compose build
+docker compose up -d
 docker compose ps
-docker compose logs --tail=100 api prometheus grafana mlflow mlflow-init
 ```
 
-Services:
+Services: API `8000`, MLflow `5050`, Prometheus `9090`, Grafana `3000`.
 
-| Service | URL |
-| --- | --- |
-| API/Swagger | <http://localhost:8000/docs> |
-| Prometheus targets | <http://localhost:9090/targets> |
-| Prometheus alerts | <http://localhost:9090/alerts> |
-| Grafana | <http://localhost:3000> |
-| MLflow | <http://localhost:5050> |
+## Reproduced final test metrics
 
-Grafana local defaults come from `.env.example` (`admin`/`admin`) and must be replaced outside a
-local demonstration. Open the provisioned **Patient Readmission API** dashboard. The Prometheus
-datasource uses `http://prometheus:9090`, which is correct inside Compose.
+| Metric | Value |
+| --- | ---: |
+| PR-AUC | 0.1081018905 |
+| ROC-AUC | 0.5667913495 |
+| Precision | 0.1585760518 |
+| Recall | 0.0512552301 |
+| F1 | 0.0774703557 |
+| Brier score | 0.3855983188 |
 
-The `mlflow-init` service logs `xgb-v1-production-1.0.0` into experiment
-`patient-readmission-production` without retraining. MLflow, Prometheus, and Grafana use named
-volumes. Normal restart preserves them:
+Confusion matrix: TN 10,115; FP 260; FN 907; TP 49.
 
-```bash
-docker compose restart
-```
-
-Stop without deleting evidence:
-
-```bash
-docker compose down
-```
-
-Do not use `docker compose down -v` unless deliberately resetting all local monitoring/tracking
-state.
-
-## Safe failure demonstration
-
-Do not rename or delete frozen files. Start a separate container with an invalid artifact directory:
-
-```bash
-docker run --rm -p 8001:8000 \
-  -e PRODUCTION_ARTIFACT_DIR=/app/models/unavailable \
-  patient-readmission-api:1.0.0
-```
-
-Then `curl -i http://localhost:8001/ready` returns 503. The process remains observable through
-`/health`, and `/predict` returns the privacy-safe model-unavailable response.
-
-## MLflow outside Compose
-
-The current local run can be viewed with:
-
-```bash
-python -m mlflow server \
-  --backend-store-uri sqlite:///mlruns/mlflow.db \
-  --default-artifact-root ./mlruns \
-  --host 127.0.0.1 --port 5000
-```
-
-To idempotently log the frozen champion to another tracking server:
-
-```bash
-python -m src.evaluation.mlflow_champion \
-  --artifact-dir models/production_v1 \
-  --tracking-uri http://localhost:5000 \
-  --experiment-name patient-readmission-production
-```
-
-This command reloads and logs existing artifacts; it does not fit a model.
-
-## Security, privacy, and artifact policy
-
-- `patient_nbr`, `encounter_id`, and target fields are accepted by neither endpoint. The XGBoost
-  endpoint also excludes diagnosis and discharge-disposition fields according to its manifest;
-  CatBoost accepts its engineered `level1_diag1` and categorical `discharge_disposition_id` because
-  both are embedded features of that separate artifact.
-- Request bodies and demographic/raw feature values are not used as metric labels or logged.
-- `.env`, raw/interim patient data, caches, and local MLflow state are ignored by Git.
-- The four frozen XGBoost artifacts, approved reports, and CatBoost artifact are tracked in normal
-  Git and verified by CI after checkout. Raw/interim patient data and local MLflow state remain
-  excluded.
-
-## XGBoost portability note
-
-The serialized booster records XGBoost `3.3.0`, which requires Python 3.12 or newer. The course
-runtime is fixed at Python 3.11.15, so XGBoost is pinned to the newest compatible release, `3.2.0`.
-Loading therefore emits XGBoost's cross-version pickle warning. The artifact remains a Python
-pickle/joblib object, which is less portable and less safe than XGBoost's native model format. The
-frozen artifact is not regenerated; contract tests pin an observed prediction so runtime changes
-expose reproducibility regressions.
-
-## Troubleshooting
-
-- `/health` 200 but `/ready` 503: verify the four XGBoost files and
-  `PRODUCTION_ARTIFACT_DIR`.
-- `/predict/catboost` 503: verify `cat_tunning_model.pkl` and `CATBOOST_MODEL_PATH`.
-- Docker cannot connect: start Docker Desktop/OrbStack before build or Compose commands.
-- Prometheus target down: confirm API health and `api:8000/metrics` from the Compose network.
-- Grafana has no data: verify Prometheus target `UP`, generate a few predictions, and select the last
-  15–30 minutes.
-- MLflow init exits 0: this is expected for the one-shot logging service.
-- CI artifact preflight fails: settle and implement the production artifact Git/LFS/download policy.
-
-For the exact rehearsal flow and screenshot checklist, see [docs/api/DEMO_GUIDE.md](docs/api/DEMO_GUIDE.md).
+These results reproduce the saved notebook output. The low recall, lack of calibration, preprocessing
+leakage and resampling protocol are documented limitations; this system must not be used for
+autonomous clinical decisions.

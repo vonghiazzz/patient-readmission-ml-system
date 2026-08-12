@@ -1,0 +1,20 @@
+{
+  "model_version": "huy-catboost-1.0.0",
+  "model_sha256": "a0d11b7ed0c1956d10afbfda360ec24ae2c55f6d6d50d32ed50780a81160331b",
+  "decision_threshold": 0.8564852152742759,
+  "test_rows": 11331,
+  "negative_count": 10375,
+  "positive_count": 956,
+  "precision": 0.15857605177993528,
+  "recall": 0.051255230125523014,
+  "f1": 0.0774703557312253,
+  "roc_auc": 0.566791349498412,
+  "pr_auc": 0.10810189054977758,
+  "brier_score": 0.38559831881602613,
+  "confusion_matrix": {
+    "tn": 10115,
+    "fp": 260,
+    "fn": 907,
+    "tp": 49
+  }
+}

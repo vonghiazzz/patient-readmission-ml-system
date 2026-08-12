@@ -33,7 +33,7 @@ PREDICTION_RISK_SCORE = Histogram(
     "readmission_prediction_risk_score",
     "Distribution of model predict_proba scores.",
     ("model",),
-    buckets=(0.02, 0.05, 0.1, 0.17, 0.25, 0.4, 0.6, 0.8, 1.0),
+    buckets=(0.05, 0.1, 0.25, 0.4, 0.6, 0.75, 0.8564852152742759, 0.95, 1.0),
 )
 MODEL_READY = Gauge(
     "readmission_model_ready",
