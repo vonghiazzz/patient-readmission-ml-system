@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from src.api.dependencies import ArtifactContractError, load_production_artifacts
 from src.api.exception_handlers import register_exception_handlers
 from src.api.routes import router
