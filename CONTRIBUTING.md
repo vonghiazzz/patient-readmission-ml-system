@@ -11,12 +11,12 @@
 
 ## Branching
 
-main ← develop ← feature/*
+main ← develop ← feature
 
-- Mỗi task phải có PR, ít nhất 1 reviewer duyệt trước khi merge vào develop.
-- Freeze feature development sau Day 12; chỉ sửa lỗi nghiêm trọng.
+- Each task requires a Pull Request (PR) and approval from at least one reviewer before merging into the `develop` branch.
+- Feature development is frozen after Day 12; only critical bug fixes are permitted.
 
 ## Rules
 
-- Không commit raw patient data, .env, model binary lớn.
-- Mỗi task kỹ thuật phải có deliverable + PR/commit evidence.
+- Do not commit raw patient data, .env files, or large model binaries.
+- Each technical task must have a deliverable and evidence of a PR or commit.

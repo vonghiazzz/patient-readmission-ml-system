@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.dependencies import ArtifactContractError, load_production_artifacts
 from src.api.exception_handlers import register_exception_handlers
@@ -40,6 +41,21 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=False,
+    allow_methods=[
+        "GET",
+        "POST",
+        "OPTIONS",
+    ],
+    allow_headers=["*"],
 )
 
 register_exception_handlers(app)

@@ -1,4 +1,4 @@
-# Patient Readmission ML System — Huy Final CatBoost
+# Patient Readmission ML System — Final CatBoost
 
 Hệ thống dự đoán nguy cơ tái nhập viện trong 30 ngày, sử dụng duy nhất mô hình CatBoost cuối cùng
 trong notebook của Huy. Hệ thống phục vụ mục đích học tập và hỗ trợ ưu tiên theo dõi; không thay
@@ -8,7 +8,7 @@ thế quyết định lâm sàng.
 
 | Item | Value |
 | --- | --- |
-| Champion | Huy Final CatBoost |
+| Champion | Final CatBoost |
 | Model version | `huy-catboost-1.0.0` |
 | Feature set | `HUY_FINAL_52` |
 | Request | 40 raw encounter fields |
