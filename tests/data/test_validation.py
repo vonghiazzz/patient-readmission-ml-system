@@ -160,3 +160,81 @@ def test_duplicate_violation_fails_validation(
     )
 
     assert_validation_failed(invalid_dataframe, quality_config)
+
+def test_non_numeric_value_fails_validation(
+    valid_dataframe: pd.DataFrame,
+    quality_config: dict,
+) -> None:
+    invalid_dataframe = valid_dataframe.copy()
+    invalid_dataframe["num_medications"] = invalid_dataframe["num_medications"].astype(object)
+    invalid_dataframe.loc[0, "num_medications"] = "invalid"
+
+    report = validate_dataframe(invalid_dataframe, quality_config)
+
+    assert report["schema_passed"] is False
+    assert any(
+        "contains 1 non-numeric values" in error
+        for error in report["errors"]
+    )
+
+
+def test_invalid_range_configuration_fails_validation(
+    valid_dataframe: pd.DataFrame,
+    quality_config: dict,
+) -> None:
+    config = {
+        **quality_config,
+        "value_ranges": {
+            "time_in_hospital": "invalid-config",
+        },
+    }
+
+    report = validate_dataframe(valid_dataframe, config)
+
+    assert report["schema_passed"] is False
+    assert (
+        "Range configuration for column 'time_in_hospital' must be a mapping."
+        in report["errors"]
+    )
+
+
+def test_missing_duplicate_column_fails_validation(
+    valid_dataframe: pd.DataFrame,
+    quality_config: dict,
+) -> None:
+    config = {
+        **quality_config,
+        "duplicate_subset": ["nonexistent_column"],
+    }
+
+    report = validate_dataframe(valid_dataframe, config)
+
+    assert report["schema_passed"] is False
+    assert any(
+        "Duplicate check columns are missing" in error
+        for error in report["errors"]
+    )
+
+
+def test_allowed_duplicate_rows_generate_warning(
+    valid_dataframe: pd.DataFrame,
+    quality_config: dict,
+) -> None:
+    duplicated_dataframe = pd.concat(
+        [valid_dataframe, valid_dataframe.iloc[[0]]],
+        ignore_index=True,
+    )
+
+    config = {
+        **quality_config,
+        "max_duplicate_rows": 1,
+    }
+
+    report = validate_dataframe(duplicated_dataframe, config)
+
+    assert report["schema_passed"] is True
+    assert report["duplicate_count"] == 1
+    assert any(
+        "Detected 1 duplicate rows/keys" in warning
+        for warning in report["warnings"]
+    )
