@@ -161,6 +161,7 @@ def test_duplicate_violation_fails_validation(
 
     assert_validation_failed(invalid_dataframe, quality_config)
 
+
 def test_non_numeric_value_fails_validation(
     valid_dataframe: pd.DataFrame,
     quality_config: dict,
@@ -172,10 +173,7 @@ def test_non_numeric_value_fails_validation(
     report = validate_dataframe(invalid_dataframe, quality_config)
 
     assert report["schema_passed"] is False
-    assert any(
-        "contains 1 non-numeric values" in error
-        for error in report["errors"]
-    )
+    assert any("contains 1 non-numeric values" in error for error in report["errors"])
 
 
 def test_invalid_range_configuration_fails_validation(
@@ -193,8 +191,7 @@ def test_invalid_range_configuration_fails_validation(
 
     assert report["schema_passed"] is False
     assert (
-        "Range configuration for column 'time_in_hospital' must be a mapping."
-        in report["errors"]
+        "Range configuration for column 'time_in_hospital' must be a mapping." in report["errors"]
     )
 
 
@@ -210,10 +207,7 @@ def test_missing_duplicate_column_fails_validation(
     report = validate_dataframe(valid_dataframe, config)
 
     assert report["schema_passed"] is False
-    assert any(
-        "Duplicate check columns are missing" in error
-        for error in report["errors"]
-    )
+    assert any("Duplicate check columns are missing" in error for error in report["errors"])
 
 
 def test_allowed_duplicate_rows_generate_warning(
@@ -234,7 +228,4 @@ def test_allowed_duplicate_rows_generate_warning(
 
     assert report["schema_passed"] is True
     assert report["duplicate_count"] == 1
-    assert any(
-        "Detected 1 duplicate rows/keys" in warning
-        for warning in report["warnings"]
-    )
+    assert any("Detected 1 duplicate rows/keys" in warning for warning in report["warnings"])

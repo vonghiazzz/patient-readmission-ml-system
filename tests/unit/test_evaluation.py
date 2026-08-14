@@ -6,8 +6,6 @@ import pandas as pd
 import pytest
 
 from src.evaluation.data_contract import align_source_features
-from src.features.build_features import REQUEST_FEATURES
-
 from src.evaluation.fairness import subgroup_metrics
 
 
@@ -46,10 +44,9 @@ def test_huy_specific_evaluation_reports_exist() -> None:
     }
     assert expected.issubset({path.name for path in reports.iterdir()})
 
+
 def test_align_source_features_resolves_normalized_names() -> None:
-    sample = json.loads(
-        Path("docs/api/sample_request.json").read_text(encoding="utf-8")
-    )
+    sample = json.loads(Path("docs/api/sample_request.json").read_text(encoding="utf-8"))
 
     frame = pd.DataFrame([sample])
 
@@ -72,8 +69,7 @@ def test_align_source_features_resolves_normalized_names() -> None:
     frame = frame.rename(columns=renamed)
 
     preprocessing_state = json.loads(
-        Path("models/production_huy/preprocessing_state.json")
-        .read_text(encoding="utf-8")
+        Path("models/production_huy/preprocessing_state.json").read_text(encoding="utf-8")
     )
 
     result = align_source_features(frame, preprocessing_state)
@@ -81,16 +77,14 @@ def test_align_source_features_resolves_normalized_names() -> None:
     assert result.shape[0] == 1
     assert not result.empty
 
+
 def test_align_source_features_with_sample_request() -> None:
-    sample = json.loads(
-        Path("docs/api/sample_request.json").read_text(encoding="utf-8")
-    )
+    sample = json.loads(Path("docs/api/sample_request.json").read_text(encoding="utf-8"))
 
     frame = pd.DataFrame([sample])
 
     preprocessing_state = json.loads(
-        Path("models/production_huy/preprocessing_state.json")
-        .read_text(encoding="utf-8")
+        Path("models/production_huy/preprocessing_state.json").read_text(encoding="utf-8")
     )
 
     result = align_source_features(frame, preprocessing_state)
@@ -98,18 +92,16 @@ def test_align_source_features_with_sample_request() -> None:
     assert result.shape[0] == 1
     assert result.shape[1] > 0
 
+
 def test_align_source_features_fails_when_feature_missing() -> None:
-    sample = json.loads(
-        Path("docs/api/sample_request.json").read_text(encoding="utf-8")
-    )
+    sample = json.loads(Path("docs/api/sample_request.json").read_text(encoding="utf-8"))
 
     sample.pop("race")
 
     frame = pd.DataFrame([sample])
 
     preprocessing_state = json.loads(
-        Path("models/production_huy/preprocessing_state.json")
-        .read_text(encoding="utf-8")
+        Path("models/production_huy/preprocessing_state.json").read_text(encoding="utf-8")
     )
 
     with pytest.raises(ValueError, match="cannot resolve Huy raw features"):

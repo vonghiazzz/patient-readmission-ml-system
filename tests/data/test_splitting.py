@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from src.data.splitting import (
@@ -10,10 +11,6 @@ from src.data.splitting import (
     create_huy_splits,
     run_splitting,
 )
-
-import pandas as pd
-
-from src.data.splitting import create_huy_cohort, create_huy_splits
 
 
 def state() -> dict:
@@ -79,6 +76,7 @@ def test_huy_split_is_stratified_80_20_without_patient_overlap() -> None:
     assert len(test) == 4
     assert set(train["patient_nbr"]).isdisjoint(test["patient_nbr"])
     assert train["readmitted_30d"].mean() == test["readmitted_30d"].mean() == 0.5
+
 
 def test_create_huy_cohort_fails_when_required_column_is_missing() -> None:
     dataframe = fixture_frame().drop(columns=["diag_2"])
@@ -149,18 +147,22 @@ def test_split_summary_returns_expected_counts() -> None:
     assert result["positive_rate"] == pytest.approx(0.5)
     assert len(result["patient_id_hash"]) == 64
 
+
 def test_run_splitting_writes_outputs_and_manifest(tmp_path: Path) -> None:
     input_path = tmp_path / "input.csv"
     output_directory = tmp_path / "splits"
     manifest_path = tmp_path / "manifest.json"
-    preprocessing_state_path = Path(
-        "models/production_huy/preprocessing_state.json"
-    )
+    preprocessing_state_path = Path("models/production_huy/preprocessing_state.json")
 
     input_dataframe = fixture_frame().copy()
 
-    for column in ["diag_1", "diag_2", "diag_3"]:
-        input_dataframe[column] = input_dataframe[column].astype(str)
+    # Keep diagnosis columns as strings when pandas reads the CSV.
+    # This mirrors the raw dataset, where "?" is also a valid missing marker.
+    duplicate_row = input_dataframe["encounter_id"].eq(9999)
+    input_dataframe.loc[
+        duplicate_row,
+        ["diag_1", "diag_2", "diag_3"],
+    ] = "?"
 
     input_dataframe.to_csv(input_path, index=False)
 
@@ -186,9 +188,7 @@ def test_run_splitting_writes_outputs_and_manifest(tmp_path: Path) -> None:
     assert len(train) == 16
     assert len(test) == 4
 
-    assert set(train["patient_nbr"]).isdisjoint(
-        set(test["patient_nbr"])
-    )
+    assert set(train["patient_nbr"]).isdisjoint(set(test["patient_nbr"]))
 
     assert manifest["strategy"] == "huy_first_encounter_stratified_split"
     assert manifest["random_state"] == 42
