@@ -2,7 +2,10 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
+import pytest
 
+from src.evaluation.data_contract import align_source_features
 from src.evaluation.fairness import subgroup_metrics
 
 
@@ -40,3 +43,66 @@ def test_huy_specific_evaluation_reports_exist() -> None:
         "fairness_gap_summary.csv",
     }
     assert expected.issubset({path.name for path in reports.iterdir()})
+
+
+def test_align_source_features_resolves_normalized_names() -> None:
+    sample = json.loads(Path("docs/api/sample_request.json").read_text(encoding="utf-8"))
+
+    frame = pd.DataFrame([sample])
+
+    # Simulate source columns using hyphens instead of underscores.
+    renamed = {
+        "admission_type_id": "admission-type-id",
+        "discharge_disposition_id": "discharge-disposition-id",
+        "admission_source_id": "admission-source-id",
+        "time_in_hospital": "time-in-hospital",
+        "num_lab_procedures": "num-lab-procedures",
+        "num_procedures": "num-procedures",
+        "num_medications": "num-medications",
+        "number_outpatient": "number-outpatient",
+        "number_emergency": "number-emergency",
+        "number_inpatient": "number-inpatient",
+        "number_diagnoses": "number-diagnoses",
+        "diag_1": "diag-1",
+    }
+
+    frame = frame.rename(columns=renamed)
+
+    preprocessing_state = json.loads(
+        Path("models/production_huy/preprocessing_state.json").read_text(encoding="utf-8")
+    )
+
+    result = align_source_features(frame, preprocessing_state)
+
+    assert result.shape[0] == 1
+    assert not result.empty
+
+
+def test_align_source_features_with_sample_request() -> None:
+    sample = json.loads(Path("docs/api/sample_request.json").read_text(encoding="utf-8"))
+
+    frame = pd.DataFrame([sample])
+
+    preprocessing_state = json.loads(
+        Path("models/production_huy/preprocessing_state.json").read_text(encoding="utf-8")
+    )
+
+    result = align_source_features(frame, preprocessing_state)
+
+    assert result.shape[0] == 1
+    assert result.shape[1] > 0
+
+
+def test_align_source_features_fails_when_feature_missing() -> None:
+    sample = json.loads(Path("docs/api/sample_request.json").read_text(encoding="utf-8"))
+
+    sample.pop("race")
+
+    frame = pd.DataFrame([sample])
+
+    preprocessing_state = json.loads(
+        Path("models/production_huy/preprocessing_state.json").read_text(encoding="utf-8")
+    )
+
+    with pytest.raises(ValueError, match="cannot resolve Huy raw features"):
+        align_source_features(frame, preprocessing_state)
