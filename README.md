@@ -58,6 +58,12 @@ curl --fail-with-body -X POST http://127.0.0.1:8000/predict \
   --data @docs/api/sample_high_risk_request.json
 ```
 
+ http://localhost:8000/docs
+ http://localhost:5050 MLFlow
+ http://localhost:9090 Prometheus
+ http://localhost:3000 Grafana
+Tk = pass = admin.
+
 Response:
 
 ```json
