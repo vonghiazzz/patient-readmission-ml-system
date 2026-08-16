@@ -16,7 +16,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .coverage
+coverage.json
 htmlcov/
+
+# Generated repository inventory
+project_structure.txt
 
 # macOS
 .DS_Store
